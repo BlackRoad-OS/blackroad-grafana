@@ -25,6 +25,7 @@ import (
 	folders "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1beta1"
 	"github.com/grafana/grafana/apps/iam/pkg/reconcilers"
 	"github.com/grafana/grafana/pkg/apimachinery/utils"
+	"github.com/grafana/grafana/pkg/apiserver/auditing"
 	grafanaregistry "github.com/grafana/grafana/pkg/apiserver/registry/generic"
 	grafanarest "github.com/grafana/grafana/pkg/apiserver/rest"
 	"github.com/grafana/grafana/pkg/cmd/grafana-cli/logger"
@@ -43,6 +44,7 @@ import (
 
 var _ builder.APIGroupBuilder = (*FolderAPIBuilder)(nil)
 var _ builder.APIGroupValidation = (*FolderAPIBuilder)(nil)
+var _ builder.APIGroupAuditor = (*FolderAPIBuilder)(nil)
 
 var resourceInfo = folders.FolderResourceInfo
 
@@ -360,4 +362,8 @@ func (b *FolderAPIBuilder) Validate(ctx context.Context, a admission.Attributes,
 	default:
 		return nil
 	}
+}
+
+func (b *FolderAPIBuilder) GetPolicyRuleEvaluator() auditing.PolicyRuleEvaluator {
+	return auditing.NewDefaultGrafanaPolicyRuleEvaluator()
 }
