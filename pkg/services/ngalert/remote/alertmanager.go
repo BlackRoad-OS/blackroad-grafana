@@ -57,6 +57,7 @@ func NoopAutogenFn(_ context.Context, _ log.Logger, _ int64, _ *apimodels.Postab
 }
 
 type Crypto interface {
+	Encrypt(ctx context.Context, payload []byte, opt secrets.EncryptionOptions) ([]byte, error)
 	Decrypt(ctx context.Context, payload []byte) ([]byte, error)
 	DecryptExtraConfigs(ctx context.Context, config *apimodels.PostableUserConfig) error
 }
@@ -289,20 +290,6 @@ func (am *Alertmanager) isDefaultConfiguration(configHash string) bool {
 	return configHash == am.defaultConfigHash
 }
 
-func decrypter(ctx context.Context, crypto Crypto) models.DecryptFn {
-	return func(value string) (string, error) {
-		decoded, err := base64.StdEncoding.DecodeString(value)
-		if err != nil {
-			return "", err
-		}
-		decrypted, err := crypto.Decrypt(ctx, decoded)
-		if err != nil {
-			return "", err
-		}
-		return string(decrypted), nil
-	}
-}
-
 // buildConfiguration takes a raw Alertmanager configuration and returns a config that the remote Alertmanager can use.
 // It parses the initial configuration, adds auto-generated routes, decrypts receivers, and merges the extra configs.
 func (am *Alertmanager) buildConfiguration(ctx context.Context, raw []byte, createdAtEpoch int64, autogenInvalidReceiverAction notifier.InvalidReceiversAction) (remoteClient.UserGrafanaConfig, error) {
@@ -317,7 +304,7 @@ func (am *Alertmanager) buildConfiguration(ctx context.Context, raw []byte, crea
 	}
 
 	// Decrypt the receivers in the configuration.
-	decryptedReceivers, err := notifier.DecryptedReceivers(c.AlertmanagerConfig.Receivers, decrypter(ctx, am.crypto))
+	decryptedReceivers, err := notifier.DecryptedReceivers(c.AlertmanagerConfig.Receivers, notifier.DecryptIntegrationSettings(ctx, am.crypto))
 	if err != nil {
 		return remoteClient.UserGrafanaConfig{}, fmt.Errorf("unable to decrypt receivers: %w", err)
 	}
@@ -619,7 +606,7 @@ func (am *Alertmanager) GetReceivers(ctx context.Context) ([]apimodels.Receiver,
 }
 
 func (am *Alertmanager) TestReceivers(ctx context.Context, c apimodels.TestReceiversConfigBodyParams) (*alertingNotify.TestReceiversResult, int, error) {
-	decryptedReceivers, err := notifier.DecryptedReceivers(c.Receivers, decrypter(ctx, am.crypto))
+	decryptedReceivers, err := notifier.DecryptedReceivers(c.Receivers, notifier.DecryptIntegrationSettings(ctx, am.crypto))
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to decrypt receivers: %w", err)
 	}
