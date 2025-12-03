@@ -20,7 +20,7 @@ function getPluginIcon(pluginId?: string): string {
     case 'grafana-investigations-app':
       return 'eye';
     case 'grafana-grotfood-app':
-      return 'wrench';
+      return 'gf-grotfood';
     default:
       return 'ai-sparkle';
   }
