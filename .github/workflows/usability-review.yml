@@ -179,3 +179,27 @@ jobs:
 
           gh pr comment $PR_NUMBER --body-file "$COMMENT_FILE"
           rm "$COMMENT_FILE"
+
+      - name: Push metrics to ClickHouse
+        if: always()
+        env:
+          ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          NOW_TS=$(date -u '+%Y-%m-%d %H:%M:%S.%3N')
+
+          cat <<EOF | curl --user "default:E1sWO.H~aYRpg" \
+            -X POST "https://czbvujly5p.eu-west-1.aws.clickhouse.cloud:8443/?query=INSERT+INTO+action_runs_prod+FORMAT+JSONEachRow" \
+            --data-binary @-
+          {
+            "timestamp": "$NOW_TS",
+            "actor_login": "$ACTOR",
+            "pr_author_login": "$PR_AUTHOR",
+            "pr_number": $PR_NUMBER,
+            "repo": "$REPO",
+            "run_id": $RUN_ID
+          }
+          EOF
