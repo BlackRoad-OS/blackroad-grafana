@@ -33,7 +33,7 @@ import { t } from '@grafana/i18n';
 import { TraceToProfilesOptions } from '@grafana/o11y-ds-frontend';
 import { getBackendSrv, usePluginLinks } from '@grafana/runtime';
 import { TimeZone } from '@grafana/schema';
-import { Icon, LinkButton, Spinner, useStyles2 } from '@grafana/ui';
+import { Icon, Spinner, useStyles2, useTheme2 } from '@grafana/ui';
 
 import { pyroscopeProfileIdTagKey } from '../../../createSpanLink';
 import { autoColor } from '../../Theme';
@@ -112,6 +112,16 @@ const useResourceAttributesExtensionLinks = ({
   return resourceLinksGetter;
 };
 
+// Assertion severity type
+type AssertionSeverity = 'critical' | 'warning' | 'info';
+
+// Colors matching Asserts plugin
+const ASSERTS_COLORS: Record<AssertionSeverity, string> = {
+  critical: '#F2495C',
+  warning: '#FF9830',
+  info: '#5794F2',
+};
+
 // Response type from the alert-inspection API
 interface AlertInspectionEntity {
   id: number;
@@ -121,6 +131,17 @@ interface AlertInspectionEntity {
     namespace?: string;
     env?: string;
   };
+  assertion?: {
+    severity?: AssertionSeverity;
+    amend?: boolean;
+    assertions?: Array<{
+      assertionName: string;
+      severity: AssertionSeverity;
+      category: string;
+      entityType: string;
+    }>;
+  };
+  assertionCount?: number;
 }
 
 interface AlertInspectionResponse {
@@ -133,6 +154,82 @@ interface AlertInspectionResponse {
     entities: AlertInspectionEntity[];
   };
 }
+
+// Get ring color based on assertion severity
+const getRingColor = (entity?: AlertInspectionEntity, theme?: GrafanaTheme2): string => {
+  const severity = entity?.assertion?.severity;
+  if (severity && ASSERTS_COLORS[severity]) {
+    return ASSERTS_COLORS[severity];
+  }
+  // Use neutral/secondary color when no assertions
+  return theme?.colors.text.secondary ?? '#8e8e8e';
+};
+
+// Entity Circle Component styled like Asserts
+const EntityCircleLink = ({
+  entity,
+  entityUrl,
+  theme,
+}: {
+  entity: AlertInspectionEntity;
+  entityUrl: string;
+  theme: GrafanaTheme2;
+}) => {
+  const size = 24;
+  const ringWidth = 2;
+  const ringColor = getRingColor(entity, theme);
+
+  const styles = {
+    container: css({
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '4px 10px 4px 4px',
+      borderRadius: theme.shape.radius.pill,
+      backgroundColor: theme.colors.background.secondary,
+      cursor: 'pointer',
+      textDecoration: 'none',
+      color: theme.colors.text.primary,
+      border: `1px solid ${theme.colors.border.weak}`,
+      '&:hover': {
+        backgroundColor: theme.colors.action.hover,
+        borderColor: theme.colors.border.medium,
+        textDecoration: 'none',
+        color: theme.colors.text.primary,
+      },
+    }),
+    circle: css({
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: theme.shape.radius.circle,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: `radial-gradient(circle at center, ${theme.colors.background.primary} ${size / 2 - ringWidth - 1}px, transparent ${size / 2 - ringWidth}px), ${ringColor}`,
+      flexShrink: 0,
+    }),
+    icon: css({
+      color: theme.colors.text.secondary,
+      fontSize: '12px',
+    }),
+    entityName: css({
+      fontSize: theme.typography.bodySmall.fontSize,
+      fontWeight: theme.typography.fontWeightMedium,
+      whiteSpace: 'nowrap',
+    }),
+  };
+
+  return (
+    <a href={entityUrl} target="_blank" rel="noopener noreferrer" className={styles.container}>
+      <div className={styles.circle}>
+        <Icon name="cog" className={styles.icon} />
+      </div>
+      <span className={styles.entityName} title={entity.name}>
+        {entity.name}
+      </span>
+    </a>
+  );
+};
 
 // Build the KG entity URL from the entity data
 const buildEntityUrl = (entity: AlertInspectionEntity, timeRange: TimeRange): string => {
@@ -168,7 +265,7 @@ const useEntityUrl = ({
   timeRange: TimeRange;
 }) => {
   const [entityUrl, setEntityUrl] = useState<string | null>(null);
-  const [entityName, setEntityName] = useState<string | null>(null);
+  const [entity, setEntity] = useState<AlertInspectionEntity | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -235,12 +332,12 @@ const useEntityUrl = ({
         console.log('API Response:', response);
 
         // Extract the first entity from the response
-        const entity = response?.data?.entities?.[0];
-        if (entity) {
-          const url = buildEntityUrl(entity, timeRange);
+        const foundEntity = response?.data?.entities?.[0];
+        if (foundEntity) {
+          const url = buildEntityUrl(foundEntity, timeRange);
           setEntityUrl(url);
-          setEntityName(`${entity.type}: ${entity.name}`);
-          console.log('Entity found:', entity.type, entity.name, 'URL:', url);
+          setEntity(foundEntity);
+          console.log('Entity found:', foundEntity.type, foundEntity.name, 'URL:', url);
         } else {
           console.log('No entities found in response');
         }
@@ -261,7 +358,7 @@ const useEntityUrl = ({
     }
   }, [spanTags, processTags, timeRange]);
 
-  return { entityUrl, entityName, loading, error };
+  return { entityUrl, entity, loading, error };
 };
 
 const getStyles = (theme: GrafanaTheme2) => {
@@ -310,6 +407,13 @@ const getStyles = (theme: GrafanaTheme2) => {
       display: 'flex',
       width: '100%',
       marginBottom: theme.spacing(1),
+    }),
+    rightLinks: css({
+      label: 'RightLinks',
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing(1),
+      marginLeft: 'auto',
     }),
     operationName: css({
       label: 'SpanDetailOperationName',
@@ -461,11 +565,13 @@ export default function SpanDetail(props: SpanDetailProps) {
   const { timeZone } = props;
 
   // Fetch entity URL from the asserts plugin API
-  const { entityUrl, entityName, loading: entityUrlLoading } = useEntityUrl({
+  const { entityUrl, entity, loading: entityUrlLoading } = useEntityUrl({
     spanTags: tags,
     processTags: process.tags,
     timeRange,
   });
+
+  const theme = useTheme2();
 
   const durationIcon: IconName = 'hourglass';
   const startIcon: IconName = 'clock-nine';
@@ -674,20 +780,11 @@ export default function SpanDetail(props: SpanDetailProps) {
           <h6 className={styles.operationName} title={operationName}>
             {operationName}
           </h6>
-          {linksComponent}
-          {entityUrlLoading && <Spinner size="sm" />}
-          {entityUrl && entityName && (
-            <LinkButton
-              href={entityUrl}
-              target="_blank"
-              size="sm"
-              icon="external-link-alt"
-              variant="secondary"
-              title={t('explore.span-detail.view-kg-entity', 'View in Knowledge Graph')}
-            >
-              {entityName}
-            </LinkButton>
-          )}
+          <div className={styles.rightLinks}>
+            {entityUrlLoading && <Spinner size="sm" />}
+            {entityUrl && entity && <EntityCircleLink entity={entity} entityUrl={entityUrl} theme={theme} />}
+            {linksComponent}
+          </div>
         </div>
         <div className={styles.listWrapper}>
           <LabeledList className={styles.list} divider={false} items={overviewItems} color={color} />
