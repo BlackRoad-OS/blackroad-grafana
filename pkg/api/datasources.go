@@ -775,6 +775,32 @@ func (hs *HTTPServer) convertModelToDtos(ctx context.Context, ds *datasources.Da
 	return dto
 }
 
+// swagger:route GET /datasources/uid/{uid}/schema datasources schema getDatasourceSchemaWithUID
+//
+// Sends a schema request to the plugin datasource identified by the UID.
+//
+// Responses:
+// 200: okResponse
+// 400: badRequestError
+// 401: unauthorisedError
+// 403: forbiddenError
+// 500: internalServerError
+func (hs *HTTPServer) GetDatasourceSchemaWithUID(c *contextmodel.ReqContext) response.Response {
+	dsUID := web.Params(c.Req)[":uid"]
+	if !util.IsValidShortUID(dsUID) {
+		return response.Error(http.StatusBadRequest, "UID is invalid", nil)
+	}
+
+	ds, err := hs.DataSourceCache.GetDatasourceByUID(c.Req.Context(), dsUID, c.SignedInUser, c.SkipDSCache)
+	if err != nil {
+		if errors.Is(err, datasources.ErrDataSourceAccessDenied) {
+			return response.Error(http.StatusForbidden, "Access denied to datasource", err)
+		}
+		return response.Error(http.StatusInternalServerError, "Unable to load datasource metadata", err)
+	}
+	return hs.getDatasourceSchema(c, ds)
+}
+
 // swagger:route GET /datasources/uid/{uid}/health datasources health checkDatasourceHealthWithUID
 //
 // Sends a health check request to the plugin datasource identified by the UID.
@@ -829,6 +855,29 @@ func (hs *HTTPServer) CheckDatasourceHealth(c *contextmodel.ReqContext) response
 		return response.Error(http.StatusInternalServerError, "Unable to load datasource metadata", err)
 	}
 	return hs.checkDatasourceHealth(c, ds)
+}
+
+func (hs *HTTPServer) getDatasourceSchema(c *contextmodel.ReqContext, ds *datasources.DataSource) response.Response {
+	pCtx, err := hs.pluginContextProvider.GetWithDataSource(c.Req.Context(), ds.Type, c.SignedInUser, ds)
+	if err != nil {
+		return response.ErrOrFallback(http.StatusInternalServerError, "Unable to get plugin context", err)
+	}
+	req := &backend.SchemaRequest{
+		PluginContext: pCtx,
+		Headers:       map[string]string{},
+	}
+
+	err = hs.DataSourceRequestValidator.Validate(ds, c.Req)
+	if err != nil {
+		return response.Error(http.StatusForbidden, "Access denied", err)
+	}
+
+	resp, err := hs.pluginClient.Schema(c.Req.Context(), req)
+	if err != nil {
+		return translatePluginRequestErrorToAPIError(err)
+	}
+
+	return response.JSON(http.StatusOK, resp)
 }
 
 func (hs *HTTPServer) checkDatasourceHealth(c *contextmodel.ReqContext, ds *datasources.DataSource) response.Response {

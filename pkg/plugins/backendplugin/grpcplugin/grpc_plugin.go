@@ -252,3 +252,11 @@ func (p *grpcPlugin) ConvertObjects(ctx context.Context, request *backend.Conver
 	}
 	return pc.ConvertObjects(ctx, request)
 }
+
+func (p *grpcPlugin) Schema(ctx context.Context, req *backend.SchemaRequest) (*backend.SchemaResponse, error) {
+	pc, ok := p.getPluginClient(ctx)
+	if !ok {
+		return nil, plugins.ErrPluginUnavailable
+	}
+	return pc.Schema(ctx, req)
+}

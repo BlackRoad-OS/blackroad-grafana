@@ -451,6 +451,7 @@ func (hs *HTTPServer) registerRoutes() {
 		// Deprecated: use /datasources/uid/:uid/health API instead.
 		apiRoute.Any("/datasources/:id/health", requestmeta.SetSLOGroup(requestmeta.SLOGroupHighSlow), authorize(ac.EvalPermission(datasources.ActionQuery)), routing.Wrap(hs.CheckDatasourceHealth))
 		apiRoute.Any("/datasources/uid/:uid/health", requestmeta.SetSLOGroup(requestmeta.SLOGroupHighSlow), authorize(ac.EvalPermission(datasources.ActionQuery)), routing.Wrap(hs.CheckDatasourceHealthWithUID))
+		apiRoute.Any("/datasources/uid/:uid/schema", requestmeta.SetSLOGroup(requestmeta.SLOGroupHighSlow), authorize(ac.EvalPermission(datasources.ActionQuery)), routing.Wrap(hs.GetDatasourceSchemaWithUID))
 
 		// Folders
 		hs.registerFolderAPI(apiRoute, authorize)

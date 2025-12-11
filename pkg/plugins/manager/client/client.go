@@ -253,6 +253,36 @@ func (s *Service) ConvertObjects(ctx context.Context, req *backend.ConversionReq
 	return plugin.ConvertObjects(ctx, req)
 }
 
+func (s *Service) Schema(ctx context.Context, req *backend.SchemaRequest) (*backend.SchemaResponse, error) {
+	if req == nil {
+		return nil, errNilRequest
+	}
+
+	p, exists := s.plugin(ctx, req.PluginContext.PluginID, req.PluginContext.PluginVersion)
+	if !exists {
+		return nil, plugins.ErrPluginNotRegistered
+	}
+
+	resp, err := p.Schema(ctx, req)
+	if err != nil {
+		if errors.Is(err, plugins.ErrMethodNotImplemented) {
+			return nil, err
+		}
+
+		if errors.Is(err, plugins.ErrPluginUnavailable) {
+			return nil, err
+		}
+
+		if errors.Is(err, context.Canceled) {
+			return nil, plugins.ErrPluginRequestCanceledErrorBase.Errorf("client: schema request canceled: %w", err)
+		}
+
+		return nil, plugins.ErrPluginRequestFailureErrorBase.Errorf("client: failed to request schema: %w", err)
+	}
+
+	return resp, nil
+}
+
 // MutateAdmission implements plugins.Client.
 func (s *Service) MutateAdmission(ctx context.Context, req *backend.AdmissionRequest) (*backend.MutationResponse, error) {
 	if req == nil {

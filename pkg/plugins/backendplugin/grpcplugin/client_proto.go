@@ -189,3 +189,11 @@ func (r *protoClient) ConvertObjects(ctx context.Context, in *pluginv2.Conversio
 	}
 	return c.ConversionClient.ConvertObjects(ctx, in, opts...)
 }
+
+func (r *protoClient) Schema(ctx context.Context, in *pluginv2.SchemaRequest, opts ...grpc.CallOption) (*pluginv2.SchemaResponse, error) {
+	c, exists := r.client(ctx)
+	if !exists {
+		return nil, errClientNotAvailable
+	}
+	return c.InformationClient.Schema(ctx, in, opts...)
+}

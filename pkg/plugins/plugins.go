@@ -76,6 +76,7 @@ var (
 	_ = backend.StreamHandler(&Plugin{})
 	_ = backend.AdmissionHandler(&Plugin{})
 	_ = backend.ConversionHandler(&Plugin{})
+	_ = backend.SchemaHandler(&Plugin{})
 )
 
 type AngularMeta struct {
@@ -413,6 +414,14 @@ func (p *Plugin) ConvertObjects(ctx context.Context, req *backend.ConversionRequ
 	return pluginClient.ConvertObjects(ctx, req)
 }
 
+func (p *Plugin) Schema(ctx context.Context, req *backend.SchemaRequest) (*backend.SchemaResponse, error) {
+	pluginClient, ok := p.Client()
+	if !ok {
+		return nil, ErrPluginUnavailable
+	}
+	return pluginClient.Schema(ctx, req)
+}
+
 func (p *Plugin) File(name string) (fs.File, error) {
 	cleanPath, err := util.CleanRelativePath(name)
 	if err != nil {
@@ -470,6 +479,7 @@ type PluginClient interface {
 	backend.AdmissionHandler
 	backend.ConversionHandler
 	backend.StreamHandler
+	backend.SchemaHandler
 }
 
 func (p *Plugin) StaticRoute() *StaticRoute {

@@ -30,6 +30,7 @@ type ClientV2 struct {
 	grpcplugin.StreamClient
 	grpcplugin.AdmissionClient
 	grpcplugin.ConversionClient
+	grpcplugin.InformationClient
 	pluginextensionv2.RendererPlugin
 }
 
@@ -65,6 +66,11 @@ func newClientV2(descriptor PluginDescriptor, logger log.Logger, rpcClient plugi
 	}
 
 	rawRenderer, err := rpcClient.Dispense("renderer")
+	if err != nil {
+		return nil, err
+	}
+
+	rawInformation, err := rpcClient.Dispense("information")
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +115,12 @@ func newClientV2(descriptor PluginDescriptor, logger log.Logger, rpcClient plugi
 	if rawRenderer != nil {
 		if rendererPlugin, ok := rawRenderer.(pluginextensionv2.RendererPlugin); ok {
 			c.RendererPlugin = rendererPlugin
+		}
+	}
+
+	if rawInformation != nil {
+		if informationClient, ok := rawInformation.(grpcplugin.InformationClient); ok {
+			c.InformationClient = informationClient
 		}
 	}
 
@@ -334,6 +346,36 @@ func (c *ClientV2) ConvertObjects(ctx context.Context, req *backend.ConversionRe
 	}
 
 	return backend.FromProto().ConversionResponse(protoResp), nil
+}
+
+func (c *ClientV2) Schema(ctx context.Context, req *backend.SchemaRequest) (*backend.SchemaResponse, error) {
+	if c.InformationClient == nil {
+		return nil, plugins.ErrMethodNotImplemented
+	}
+
+	protoReq := backend.ToProto().SchemaRequest(req)
+	protoResp, err := c.InformationClient.Schema(ctx, protoReq)
+
+	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			return nil, plugins.ErrMethodNotImplemented
+		}
+
+		if status.Code(err) == codes.Unavailable {
+			return nil, plugins.ErrPluginGrpcConnectionUnavailableBaseFn(ctx).Errorf("%v", err)
+		}
+
+		if status.Code(err) == codes.ResourceExhausted {
+			return nil, plugins.ErrPluginGrpcResourceExhaustedBase.Errorf("%v", err)
+		}
+
+		if errorSource, ok := backend.ErrorSourceFromGrpcStatusError(ctx, err); ok {
+			return nil, handleGrpcStatusError(ctx, errorSource, err)
+		}
+		return nil, fmt.Errorf("%v: %w", "Failed to request schema", err)
+	}
+
+	return backend.FromProto().SchemaResponse(protoResp), nil
 }
 
 // handleGrpcStatusError sets the error source via context based on the error source provided. Regardless of its value,
