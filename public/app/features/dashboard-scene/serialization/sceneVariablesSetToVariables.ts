@@ -211,6 +211,10 @@ export function sceneVariablesSetToVariables(set: SceneVariables, keepQueryOptio
         ...(variable.state.allowCustomValue !== undefined && { allowCustomValue: variable.state.allowCustomValue }),
       });
     } else if (sceneUtils.isAdHocVariable(variable)) {
+      // Access pinnedKeys from extended state (custom property)
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const stateWithPinnedKeys = variable.state as unknown as { pinnedKeys?: Array<{ key: string; label?: string; description?: string }> };
+      const pinnedKeys = stateWithPinnedKeys.pinnedKeys;
       const adhocVariable: VariableModel = {
         ...commonProperties,
         datasource: variable.state.datasource,
@@ -219,6 +223,8 @@ export function sceneVariablesSetToVariables(set: SceneVariables, keepQueryOptio
         filters: [...validateFiltersOrigin(variable.state.originFilters), ...variable.state.filters],
         defaultKeys: variable.state.defaultKeys,
         ...(variable.state.allowCustomValue !== undefined && { allowCustomValue: variable.state.allowCustomValue }),
+        // pinnedKeys is a custom extension for pinned AdHoc filters
+        ...(pinnedKeys !== undefined && { pinnedKeys }),
       };
       variables.push(adhocVariable);
     } else if (sceneUtils.isSwitchVariable(variable)) {

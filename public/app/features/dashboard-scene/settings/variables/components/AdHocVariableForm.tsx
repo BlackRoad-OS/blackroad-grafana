@@ -5,8 +5,10 @@ import { selectors } from '@grafana/e2e-selectors';
 import { Trans, t } from '@grafana/i18n';
 import { EditorField } from '@grafana/plugin-ui';
 import { DataSourceRef } from '@grafana/schema';
-import { Alert, CodeEditor, Field, Switch, Box } from '@grafana/ui';
+import { Alert, CodeEditor, Field, Switch, Box, Text } from '@grafana/ui';
 import { DataSourcePicker } from 'app/features/datasources/components/picker/DataSourcePicker';
+
+import { PinnedKeyConfig } from '../../../variables/PinnedAdHocFilters/types';
 
 import { VariableCheckboxField } from './VariableCheckboxField';
 import { VariableLegend } from './VariableLegend';
@@ -21,6 +23,9 @@ export interface AdHocVariableFormProps {
   onAllowCustomValueChange?: (event: FormEvent<HTMLInputElement>) => void;
   inline?: boolean;
   datasourceSupported: boolean;
+  /** Pinned keys that should always be visible as multi-select dropdowns */
+  pinnedKeys?: PinnedKeyConfig[];
+  onPinnedKeysChange?: (keys?: PinnedKeyConfig[]) => void;
 }
 
 export function AdHocVariableForm({
@@ -33,6 +38,8 @@ export function AdHocVariableForm({
   defaultKeys,
   inline,
   datasourceSupported,
+  pinnedKeys,
+  onPinnedKeysChange,
 }: AdHocVariableFormProps) {
   const updateStaticKeys = useCallback(
     (csvContent: string) => {
@@ -45,6 +52,23 @@ export function AdHocVariableForm({
       onDefaultKeysChange?.(options);
     },
     [onDefaultKeysChange]
+  );
+
+  const updatePinnedKeys = useCallback(
+    (csvContent: string) => {
+      // Parse CSV format: key,label,description (label and description are optional)
+      const lines = csvContent.split('\n').filter((line) => line.trim().length > 0);
+      const keys: PinnedKeyConfig[] = lines.map((line) => {
+        const parts = line.split(',').map((p) => p.trim());
+        return {
+          key: parts[0] || '',
+          label: parts[1] || undefined,
+          description: parts[2] || undefined,
+        };
+      });
+      onPinnedKeysChange?.(keys.filter((k) => k.key.length > 0));
+    },
+    [onPinnedKeysChange]
   );
 
   return (
@@ -134,6 +158,52 @@ export function AdHocVariableForm({
           onChange={onAllowCustomValueChange}
           testId={selectors.pages.Dashboard.Settings.Variables.Edit.General.selectionOptionsAllowCustomValueSwitch}
         />
+      )}
+
+      {datasourceSupported && onPinnedKeysChange && (
+        <>
+          {/* eslint-disable-next-line no-restricted-syntax */}
+          <Field
+            label={t('dashboard-scene.ad-hoc-variable-form.label-pinned-filters', 'Pinned filters')}
+            description={t(
+              'dashboard-scene.ad-hoc-variable-form.description-pinned-filters',
+              'Keys that are always visible as multi-select dropdowns (one per line: key,label,description)'
+            )}
+          >
+            <Switch
+              data-testid="AdHocFiltersVariable-pinned-keys-toggle"
+              value={pinnedKeys != null && pinnedKeys.length > 0}
+              onChange={() => {
+                if (pinnedKeys == null || pinnedKeys.length === 0) {
+                  onPinnedKeysChange([]);
+                } else {
+                  onPinnedKeysChange(undefined);
+                }
+              }}
+            />
+          </Field>
+
+          {pinnedKeys != null && (
+            <>
+              <Box marginBottom={1}>
+                <Text color="secondary" variant="bodySmall">
+                  <Trans i18nKey="dashboard-scene.ad-hoc-variable-form.pinned-keys-format">
+                    Enter one key per line. Optional: key,label,description
+                  </Trans>
+                </Text>
+              </Box>
+              <CodeEditor
+                height={150}
+                language="plaintext"
+                value={pinnedKeys.map((k) => [k.key, k.label || '', k.description || ''].join(',')).join('\n')}
+                onBlur={updatePinnedKeys}
+                onSave={updatePinnedKeys}
+                showMiniMap={false}
+                showLineNumbers={true}
+              />
+            </>
+          )}
+        </>
       )}
     </>
   );

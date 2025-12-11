@@ -52,7 +52,13 @@ export function createVariablesForSnapshot(oldModel: DashboardModel) {
       try {
         // for adhoc we are using the AdHocFiltersVariable from scenes becuase of its complexity
         if (v.type === 'adhoc') {
-          return new AdHocFiltersVariable({
+          // Access pinnedKeys from the variable model (custom extension)
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const variableWithPinnedKeys = v as unknown as { pinnedKeys?: Array<{ key: string; label?: string; description?: string }> };
+          const pinnedKeys = variableWithPinnedKeys.pinnedKeys;
+
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          const adhocState = {
             name: v.name,
             label: v.label,
             readOnly: true,
@@ -69,7 +75,11 @@ export function createVariablesForSnapshot(oldModel: DashboardModel) {
             supportsMultiValueOperators: Boolean(
               getDataSourceSrv().getInstanceSettings({ type: v.datasource?.type })?.meta.multiValueFilterOperators
             ),
-          });
+            // Include pinnedKeys as a custom state property
+            ...(pinnedKeys && { pinnedKeys }),
+          } as ConstructorParameters<typeof AdHocFiltersVariable>[0];
+
+          return new AdHocFiltersVariable(adhocState);
         }
         // for other variable types we are using the SnapshotVariable
         return createSnapshotVariable(v);
@@ -149,7 +159,13 @@ export function createSceneVariableFromVariableModel(variable: TypedVariableMode
     const filters: AdHocVariableFilter[] = [];
     variable.filters?.forEach((filter) => (filter.origin ? originFilters.push(filter) : filters.push(filter)));
 
-    return new AdHocFiltersVariable({
+    // Access pinnedKeys from the variable model (custom extension)
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const variableWithPinnedKeys = variable as unknown as { pinnedKeys?: Array<{ key: string; label?: string; description?: string }> };
+    const pinnedKeys = variableWithPinnedKeys.pinnedKeys;
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const adhocState = {
       ...commonProperties,
       description: variable.description,
       skipUrlSync: variable.skipUrlSync,
@@ -166,7 +182,11 @@ export function createSceneVariableFromVariableModel(variable: TypedVariableMode
       supportsMultiValueOperators: Boolean(
         getDataSourceSrv().getInstanceSettings({ type: variable.datasource?.type })?.meta.multiValueFilterOperators
       ),
-    });
+      // Include pinnedKeys as a custom state property
+      ...(pinnedKeys && { pinnedKeys }),
+    } as ConstructorParameters<typeof AdHocFiltersVariable>[0];
+
+    return new AdHocFiltersVariable(adhocState);
   }
   // Custom variable
   if (variable.type === 'custom') {

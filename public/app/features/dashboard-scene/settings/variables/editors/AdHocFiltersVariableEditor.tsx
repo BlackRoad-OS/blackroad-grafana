@@ -7,6 +7,7 @@ import { getDataSourceSrv } from '@grafana/runtime';
 import { AdHocFiltersVariable, SceneVariable } from '@grafana/scenes';
 import { OptionsPaneItemDescriptor } from 'app/features/dashboard/components/PanelEditor/OptionsPaneItemDescriptor';
 
+import { PinnedKeyConfig } from '../../../variables/PinnedAdHocFilters/types';
 import { AdHocVariableForm } from '../components/AdHocVariableForm';
 
 interface AdHocFiltersVariableEditorProps {
@@ -15,9 +16,19 @@ interface AdHocFiltersVariableEditorProps {
   inline?: boolean;
 }
 
+// Extended state interface to include pinnedKeys
+interface ExtendedAdHocFiltersVariableState {
+  pinnedKeys?: PinnedKeyConfig[];
+}
+
 export function AdHocFiltersVariableEditor(props: AdHocFiltersVariableEditorProps) {
   const { variable } = props;
-  const { datasource: datasourceRef, defaultKeys, allowCustomValue } = variable.useState();
+  const state = variable.useState();
+  const { datasource: datasourceRef, defaultKeys, allowCustomValue } = state;
+
+  // Access pinnedKeys from extended state (stored as custom property)
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const pinnedKeys = (state as unknown as ExtendedAdHocFiltersVariableState).pinnedKeys;
 
   const { value: datasourceSettings } = useAsync(async () => {
     return await getDataSourceSrv().get(datasourceRef);
@@ -46,6 +57,15 @@ export function AdHocFiltersVariableEditor(props: AdHocFiltersVariableEditorProp
     variable.setState({ allowCustomValue: event.currentTarget.checked });
   };
 
+  const onPinnedKeysChange = (keys?: PinnedKeyConfig[]) => {
+    // Store pinnedKeys as a custom property on the variable state
+    // The AdHocFiltersVariable state doesn't officially include pinnedKeys,
+    // but we can add it as a custom extension that gets serialized with the dashboard
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const stateWithPinnedKeys = { pinnedKeys: keys } as Partial<typeof state>;
+    variable.setState(stateWithPinnedKeys);
+  };
+
   return (
     <AdHocVariableForm
       datasource={datasourceRef ?? undefined}
@@ -57,6 +77,8 @@ export function AdHocFiltersVariableEditor(props: AdHocFiltersVariableEditorProp
       onAllowCustomValueChange={onAllowCustomValueChange}
       inline={props.inline}
       datasourceSupported={datasourceSettings?.getTagKeys ? true : false}
+      pinnedKeys={pinnedKeys}
+      onPinnedKeysChange={onPinnedKeysChange}
     />
   );
 }

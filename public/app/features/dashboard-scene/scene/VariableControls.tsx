@@ -11,11 +11,20 @@ import {
   ControlsLabel,
   ControlsLayout,
   sceneUtils,
+  AdHocFiltersVariable,
 } from '@grafana/scenes';
 import { useElementSelection, useStyles2 } from '@grafana/ui';
 
+import { PinnedAdHocFiltersRenderer } from '../variables/PinnedAdHocFilters/PinnedAdHocFiltersRenderer';
+import { PinnedKeyConfig } from '../variables/PinnedAdHocFilters/types';
+
 import { DashboardScene } from './DashboardScene';
 import { AddVariableButton } from './VariableControlsAddButton';
+
+// Extended state interface to access pinnedKeys from AdHocFiltersVariable
+interface ExtendedAdHocFiltersVariableState {
+  pinnedKeys?: PinnedKeyConfig[];
+}
 
 export function VariableControls({ dashboard }: { dashboard: DashboardScene }) {
   const { variables } = sceneGraph.getVariables(dashboard)!.useState();
@@ -46,6 +55,13 @@ export function VariableValueSelectWrapper({ variable, inMenu }: VariableSelectP
   const state = useSceneObjectState<SceneVariableState>(variable, { shouldActivateOrKeepAlive: true });
   const { isSelected, onSelect, isSelectable } = useElementSelection(variable.state.key);
   const styles = useStyles2(getStyles);
+
+  // Check if this is an AdHoc variable with pinned keys
+  const isAdHocVariable = sceneUtils.isAdHocVariable(variable);
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const extendedState = variable.state as unknown as ExtendedAdHocFiltersVariableState;
+  const pinnedKeys = isAdHocVariable ? extendedState.pinnedKeys : undefined;
+  const hasPinnedKeys = pinnedKeys && pinnedKeys.length > 0;
 
   if (state.hide === VariableHide.hideVariable) {
     if (variable.UNSAFE_renderAsHidden) {
@@ -96,6 +112,34 @@ export function VariableValueSelectWrapper({ variable, inMenu }: VariableSelectP
       <div className={styles.verticalContainer} data-testid={selectors.pages.Dashboard.SubMenu.submenuItem}>
         <VariableLabel variable={variable} layout={'vertical'} />
         <variable.Component model={variable} />
+      </div>
+    );
+  }
+
+  // Render pinned filters for AdHoc variables that have them configured
+  if (isAdHocVariable && hasPinnedKeys) {
+    // We've already confirmed isAdHocVariable is true, so this cast is safe
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const adHocVariable = variable as AdHocFiltersVariable;
+    return (
+      <div className={styles.pinnedFiltersContainer}>
+        <PinnedAdHocFiltersRenderer
+          variable={adHocVariable}
+          pinnedKeys={pinnedKeys}
+        />
+        {/* Also render the regular AdHoc filter UI for additional filters */}
+        <div
+          className={cx(
+            styles.container,
+            isSelected && 'dashboard-selected-element',
+            isSelectable && !isSelected && 'dashboard-selectable-element'
+          )}
+          onPointerDown={onPointerDown}
+          data-testid={selectors.pages.Dashboard.SubMenu.submenuItem}
+        >
+          <VariableLabel variable={variable} className={cx(isSelectable && styles.labelSelectable, styles.label)} />
+          <variable.Component model={variable} />
+        </div>
       </div>
     );
   }
@@ -195,5 +239,11 @@ const getStyles = (theme: GrafanaTheme2) => ({
     verticalAlign: 'middle',
     marginBottom: theme.spacing(1),
     marginRight: theme.spacing(1),
+  }),
+  pinnedFiltersContainer: css({
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: theme.spacing(1),
   }),
 });
