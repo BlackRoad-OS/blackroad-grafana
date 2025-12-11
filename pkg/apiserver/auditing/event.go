@@ -1,10 +1,8 @@
 package auditing
 
 import (
-	"net/http"
+	"encoding/json"
 	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Event struct {
@@ -36,6 +34,50 @@ type Event struct {
 	Extra map[string]string `json:"extra,omitempty"`
 }
 
+var _ Sinkable = &Event{}
+
+func (e Event) Time() time.Time {
+	return e.ObservedAt
+}
+
+func (e Event) MarshalJSON() ([]byte, error) {
+	type Alias Event
+	return json.Marshal(&struct {
+		FormattedTimestamp string `json:"timestamp"`
+		Alias
+	}{
+		FormattedTimestamp: e.ObservedAt.UTC().Format(time.RFC3339Nano),
+		Alias:              (Alias)(e),
+	})
+}
+
+func (e Event) KVPairs() []any {
+	args := []any{
+		"audit", true,
+		"namespace", e.Namespace,
+		"observedAt", e.ObservedAt.UTC().Format(time.RFC3339Nano),
+		"subjectName", e.SubjectName,
+		"subjectUID", e.SubjectUID,
+		"verb", e.Verb,
+		"object", e.Object,
+		"apiGroup", e.APIGroup,
+		"apiVersion", e.APIVersion,
+		"kind", e.Kind,
+		"outcome", e.Outcome,
+	}
+
+	if len(e.Extra) > 0 {
+		extraArgs := make([]any, 0, len(e.Extra)*2)
+		for k, v := range e.Extra {
+			extraArgs = append(extraArgs, "extra_"+k, v)
+		}
+
+		args = append(args, extraArgs...)
+	}
+
+	return args
+}
+
 type EventOutcome string
 
 const (
@@ -45,22 +87,3 @@ const (
 	EventOutcomeFailureNotFound     EventOutcome = "failure_not_found"
 	EventOutcomeFailureGeneric      EventOutcome = "failure_generic"
 )
-
-func OutcomeFromStatus(status *metav1.Status) EventOutcome {
-	if status == nil {
-		return EventOutcomeUnknown
-	}
-
-	switch status.Code {
-	case http.StatusUnauthorized, http.StatusForbidden:
-		return EventOutcomeFailureUnauthorized
-	case http.StatusNotFound:
-		return EventOutcomeFailureNotFound
-	}
-
-	if status.Code >= http.StatusBadRequest {
-		return EventOutcomeFailureGeneric
-	}
-
-	return EventOutcomeSuccess
-}

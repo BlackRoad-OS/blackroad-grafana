@@ -1,6 +1,10 @@
 package auditing
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"time"
+)
 
 type loggerContextKey struct{}
 
@@ -11,7 +15,15 @@ var (
 )
 
 type Logger interface {
-	Log(event Event) error
+	Log(event Sinkable) error
+	Type() string
+	Close() error
+}
+
+type Sinkable interface {
+	json.Marshaler
+	KVPairs() []any
+	Time() time.Time
 }
 
 func FromContext(ctx context.Context) Logger {
