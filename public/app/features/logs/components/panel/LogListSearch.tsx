@@ -61,8 +61,13 @@ export const LogListSearch = ({ listRef, logs }: Props) => {
     }
     const prev = currentResult > 0 ? currentResult - 1 : matches.length - 1;
     setCurrentResult(prev);
-    listRef?.scrollToItem(logs.indexOf(matches[prev]), 'center');
-  }, [currentResult, listRef, logs, matches]);
+    if (!filterLogs) {
+      // Filtering logs will only display logs containing the current search.
+      // Not only scrolling is not needed in this circumstance, but it also can
+      // trigger, incorrectly, infinite scrolling.
+      listRef?.scrollToItem(logs.indexOf(matches[prev]), 'center');
+    }
+  }, [currentResult, filterLogs, listRef, logs, matches]);
 
   const nextResult = useCallback(() => {
     if (currentResult === null) {
@@ -78,7 +83,7 @@ export const LogListSearch = ({ listRef, logs }: Props) => {
       setCurrentResult(null);
       return;
     }
-    if (!currentResult) {
+    if (currentResult === null) {
       setCurrentResult(0);
       listRef?.scrollToItem(logs.indexOf(matches[0]), 'center');
     }
