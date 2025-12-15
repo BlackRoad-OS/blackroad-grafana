@@ -224,4 +224,46 @@ func testCheck(t *testing.T, server *Server) {
 		require.NoError(t, err)
 		assert.Equal(t, true, res.GetAllowed())
 	})
+
+	t.Run("user:19 should be able to view folder 4 and all subfolders", func(t *testing.T) {
+		res, err := server.Check(newContextWithNamespace(), newReq("user:19", utils.VerbGet, folderGroup, folderResource, "", "", "4"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+
+		res, err = server.Check(newContextWithNamespace(), newReq("user:19", utils.VerbGet, folderGroup, folderResource, "", "", "5"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+
+		res, err = server.Check(newContextWithNamespace(), newReq("user:19", utils.VerbGet, folderGroup, folderResource, "", "", "6"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+	})
+
+	t.Run("user:19 should be able to edit folder 4 and all subfolders", func(t *testing.T) {
+		res, err := server.Check(newContextWithNamespace(), newReq("user:19", utils.VerbDelete, folderGroup, folderResource, "", "", "4"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+
+		res, err = server.Check(newContextWithNamespace(), newReq("user:19", utils.VerbDelete, folderGroup, folderResource, "", "", "5"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+
+		res, err = server.Check(newContextWithNamespace(), newReq("user:19", utils.VerbDelete, folderGroup, folderResource, "", "", "6"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+	})
+
+	t.Run("user:20 should be able to view folder 4 and all subfolders", func(t *testing.T) {
+		res, err := server.Check(newContextWithNamespace(), newReq("user:20", utils.VerbGet, folderGroup, folderResource, "", "", "4"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+
+		res, err = server.Check(newContextWithNamespace(), newReq("user:20", utils.VerbGet, folderGroup, folderResource, "", "", "5"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+
+		res, err = server.Check(newContextWithNamespace(), newReq("user:20", utils.VerbGet, folderGroup, folderResource, "", "", "6"))
+		require.NoError(t, err)
+		assert.True(t, res.GetAllowed())
+	})
 }
