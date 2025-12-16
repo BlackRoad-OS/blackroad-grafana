@@ -17,10 +17,16 @@ import (
 
 // convertRolePermissionsToTuples converts role permissions (action/scope) to v1 TupleKey format
 // using the shared zanzana.ConvertRolePermissionsToTuples utility and common.ToAuthzExtTupleKeys
+// Disabled permissions are filtered out and not converted to tuples
 func convertRolePermissionsToTuples(roleUID string, permissions []iamv0.CoreRolespecPermission) ([]*v1.TupleKey, error) {
-	// Convert IAM permissions to zanzana.RolePermission format
+	// Convert IAM permissions to zanzana.RolePermission format, filtering out disabled permissions
 	rolePerms := make([]zanzana.RolePermission, 0, len(permissions))
 	for _, perm := range permissions {
+		// Skip disabled permissions - they should not be added to Zanzana
+		if perm.Disabled {
+			continue
+		}
+
 		// Split the scope to get kind, attribute, identifier
 		kind, _, identifier := accesscontrol.SplitScope(perm.Scope)
 		rolePerms = append(rolePerms, zanzana.RolePermission{

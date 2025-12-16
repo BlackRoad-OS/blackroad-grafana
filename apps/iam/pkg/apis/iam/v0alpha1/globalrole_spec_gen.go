@@ -8,6 +8,8 @@ type GlobalRolespecPermission struct {
 	Action string `json:"action"`
 	// RBAC scope (e.g: "dashboards:uid:dash1")
 	Scope string `json:"scope"`
+	// When true, the permission is disabled and not granted to the role
+	Disabled bool `json:"disabled"`
 }
 
 // NewGlobalRolespecPermission creates a new GlobalRolespecPermission object.

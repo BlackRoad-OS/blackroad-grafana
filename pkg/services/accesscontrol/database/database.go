@@ -67,7 +67,9 @@ func (s *AccessControlStore) GetUserPermissions(ctx context.Context, query acces
 			permission.scope
 			FROM permission
 			INNER JOIN role ON role.id = permission.role_id
-		` + filter
+		` + filter + `
+			AND (permission.disabled = 0 OR permission.disabled IS NULL)
+		`
 
 		if len(query.RolePrefixes) > 0 {
 			rolePrefixesFilter, filterParams := accesscontrol.RolePrefixesFilter(query.RolePrefixes)
@@ -132,6 +134,7 @@ func (s *AccessControlStore) GetTeamsPermissions(ctx context.Context, query acce
 			WHERE tr.team_id IN(?` + strings.Repeat(", ?", len(teams)-1) + `)
 			  AND tr.org_id = ?
 		) as all_role ON role.id = all_role.role_id
+		WHERE (permission.disabled = 0 OR permission.disabled IS NULL)
 		`
 
 		params := make([]any, 0)

@@ -203,10 +203,11 @@ type BuiltinRole struct {
 
 // Permission is the model for access control permissions
 type Permission struct {
-	ID     int64  `json:"-" xorm:"pk autoincr 'id'"`
-	RoleID int64  `json:"-" xorm:"role_id"`
-	Action string `json:"action"`
-	Scope  string `json:"scope"`
+	ID       int64  `json:"-" xorm:"pk autoincr 'id'"`
+	RoleID   int64  `json:"-" xorm:"role_id"`
+	Action   string `json:"action"`
+	Scope    string `json:"scope"`
+	Disabled bool   `json:"disabled" xorm:"disabled"`
 
 	Kind       string `json:"-"`
 	Attribute  string `json:"-"`

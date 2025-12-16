@@ -6,6 +6,8 @@ RoleSpec: {
 		action: string
 		// RBAC scope (e.g: "dashboards:uid:dash1")
 		scope: string
+		// When true, the permission is disabled and not granted to the role
+		disabled: bool | *false
 	}
 	
 	// Display name of the role

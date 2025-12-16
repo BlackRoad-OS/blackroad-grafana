@@ -218,4 +218,9 @@ func AddMigration(mg *migrator.Migrator) {
 	mg.AddMigration("Remove permission role_id index", migrator.NewDropIndexMigration(permissionV1, &migrator.Index{
 		Cols: []string{"role_id"},
 	}))
+
+	// Add disabled column to permission table
+	mg.AddMigration("add column disabled to permission table", migrator.NewAddColumnMigration(permissionV1, &migrator.Column{
+		Name: "disabled", Type: migrator.DB_Bool, Nullable: false, Default: "0",
+	}))
 }
