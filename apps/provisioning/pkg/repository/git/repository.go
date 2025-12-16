@@ -316,26 +316,27 @@ func (r *gitRepository) ReadTree(ctx context.Context, ref string) ([]repository.
 	return entries, nil
 }
 
-func (r *gitRepository) Create(ctx context.Context, path, ref string, data []byte, comment string) error {
+func (r *gitRepository) Create(ctx context.Context, path, ref string, data []byte, comment string) (*repository.FileInfo, error) {
 	if ref == "" {
 		ref = r.gitConfig.Branch
 	}
 	ctx, _ = r.withGitContext(ctx, ref)
 	branchRef, err := r.ensureBranchExists(ctx, ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	writer, err := r.client.NewStagedWriter(ctx, branchRef)
 	if err != nil {
-		return fmt.Errorf("create staged writer: %w", err)
+		return nil, fmt.Errorf("create staged writer: %w", err)
 	}
 
 	if err := r.create(ctx, path, data, writer); err != nil {
-		return err
+		return nil, err
 	}
 
-	return r.commitAndPush(ctx, writer, comment)
+	// ???? or can we hash directly?
+	return r.Read(ctx, path, ref)
 }
 
 func (r *gitRepository) create(ctx context.Context, path string, data []byte, writer nanogit.StagedWriter) error {
@@ -361,7 +362,7 @@ func (r *gitRepository) create(ctx context.Context, path string, data []byte, wr
 	return nil
 }
 
-func (r *gitRepository) Update(ctx context.Context, path, ref string, data []byte, comment string) error {
+func (r *gitRepository) Update(ctx context.Context, path, ref string, data []byte, comment string) (*repository.FileInfo, error) {
 	if ref == "" {
 		ref = r.gitConfig.Branch
 	}
@@ -369,24 +370,29 @@ func (r *gitRepository) Update(ctx context.Context, path, ref string, data []byt
 
 	// Check if trying to update a directory
 	if safepath.IsDir(path) {
-		return apierrors.NewBadRequest("cannot update a directory")
+		return nil, apierrors.NewBadRequest("cannot update a directory")
 	}
 
 	branchRef, err := r.ensureBranchExists(ctx, ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Create a staged writer
 	writer, err := r.client.NewStagedWriter(ctx, branchRef)
 	if err != nil {
-		return fmt.Errorf("create staged writer: %w", err)
+		return nil, fmt.Errorf("create staged writer: %w", err)
 	}
 
 	if err := r.update(ctx, path, data, writer); err != nil {
-		return err
+		return nil, err
 	}
 
-	return r.commitAndPush(ctx, writer, comment)
+	if err := r.commitAndPush(ctx, writer, comment); err != nil {
+		return nil, err
+	}
+
+	// ???? or can we hash directly?
+	return r.Read(ctx, path, ref)
 }
 
 func (r *gitRepository) update(ctx context.Context, path string, data []byte, writer nanogit.StagedWriter) error {
@@ -407,7 +413,7 @@ func (r *gitRepository) update(ctx context.Context, path string, data []byte, wr
 	return nil
 }
 
-func (r *gitRepository) Write(ctx context.Context, path string, ref string, data []byte, message string) error {
+func (r *gitRepository) Write(ctx context.Context, path string, ref string, data []byte, message string) (*repository.FileInfo, error) {
 	if ref == "" {
 		ref = r.gitConfig.Branch
 	}
@@ -415,12 +421,12 @@ func (r *gitRepository) Write(ctx context.Context, path string, ref string, data
 	ctx, _ = r.withGitContext(ctx, ref)
 	info, err := r.Read(ctx, path, ref)
 	if err != nil && !(errors.Is(err, repository.ErrFileNotFound)) {
-		return fmt.Errorf("check if file exists before writing: %w", err)
+		return nil, fmt.Errorf("check if file exists before writing: %w", err)
 	}
 	if err == nil {
 		// If the value already exists and is the same, we don't need to do anything
 		if bytes.Equal(info.Data, data) {
-			return nil
+			return info, nil
 		}
 		return r.Update(ctx, path, ref, data, message)
 	}

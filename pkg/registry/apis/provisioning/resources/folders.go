@@ -201,7 +201,7 @@ func (fm *FolderManager) EnsureFolderTreeExists(ctx context.Context, ref, path s
 		}
 
 		msg := fmt.Sprintf("Add folder %s", p)
-		if err := fm.repo.Create(ctx, p, ref, nil, msg); err != nil {
+		if _, err := fm.repo.Create(ctx, p, ref, nil, msg); err != nil {
 			return fn(folder, true, fmt.Errorf("write folder in repo: %w", err))
 		}
 		// Add it to the existing tree

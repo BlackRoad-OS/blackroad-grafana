@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	provisioning "github.com/grafana/grafana/apps/provisioning/pkg/apis/provisioning/v0alpha1"
 	"github.com/grafana/grafana/apps/provisioning/pkg/repository"
 	"github.com/grafana/nanogit"
 	"github.com/grafana/nanogit/mocks"
 	"github.com/grafana/nanogit/protocol/hash"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewStagedGitRepository(t *testing.T) {
@@ -515,7 +516,7 @@ func TestStagedGitRepository_Create(t *testing.T) {
 
 			stagedRepo := createTestStagedRepositoryWithWriter(mockWriter, tt.opts)
 
-			err := stagedRepo.Create(context.Background(), tt.path, tt.ref, tt.data, tt.message)
+			_, err := stagedRepo.Create(context.Background(), tt.path, tt.ref, tt.data, tt.message)
 
 			if tt.wantError != nil {
 				require.EqualError(t, err, tt.wantError.Error())
@@ -688,7 +689,7 @@ func TestStagedGitRepository_Write(t *testing.T) {
 
 			stagedRepo := createTestStagedRepositoryWithWriter(mockWriter, tt.opts)
 
-			err := stagedRepo.Write(context.Background(), tt.path, tt.ref, tt.data, tt.message)
+			_, err := stagedRepo.Write(context.Background(), tt.path, tt.ref, tt.data, tt.message)
 
 			if tt.wantError != nil {
 				require.EqualError(t, err, tt.wantError.Error())
@@ -817,7 +818,7 @@ func TestStagedGitRepository_Update(t *testing.T) {
 
 			stagedRepo := createTestStagedRepositoryWithWriter(mockWriter, tt.opts)
 
-			err := stagedRepo.Update(context.Background(), tt.path, tt.ref, tt.data, tt.message)
+			_, err := stagedRepo.Update(context.Background(), tt.path, tt.ref, tt.data, tt.message)
 
 			if tt.wantError != nil {
 				require.EqualError(t, err, tt.wantError.Error())

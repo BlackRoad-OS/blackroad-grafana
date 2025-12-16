@@ -987,7 +987,7 @@ func TestGitHubRepositoryDelegation(t *testing.T) {
 			GitRepository: mockGitRepo,
 		}
 
-		err := repo.Create(ctx, "new-file.yaml", "main", data, "Create new file")
+		_, err := repo.Create(ctx, "new-file.yaml", "main", data, "Create new file")
 		require.NoError(t, err)
 		mockGitRepo.AssertExpectations(t)
 	})
@@ -1002,7 +1002,7 @@ func TestGitHubRepositoryDelegation(t *testing.T) {
 			GitRepository: mockGitRepo,
 		}
 
-		err := repo.Update(ctx, "existing-file.yaml", "main", data, "Update file")
+		_, err := repo.Update(ctx, "existing-file.yaml", "main", data, "Update file")
 		require.NoError(t, err)
 		mockGitRepo.AssertExpectations(t)
 	})
@@ -1017,7 +1017,7 @@ func TestGitHubRepositoryDelegation(t *testing.T) {
 			GitRepository: mockGitRepo,
 		}
 
-		err := repo.Write(ctx, "file.yaml", "main", data, "Write file")
+		_, err := repo.Write(ctx, "file.yaml", "main", data, "Write file")
 		require.NoError(t, err)
 		mockGitRepo.AssertExpectations(t)
 	})

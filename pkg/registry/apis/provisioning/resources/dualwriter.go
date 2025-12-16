@@ -157,7 +157,7 @@ func (r *DualReadWriter) CreateFolder(ctx context.Context, opts DualWriteOptions
 	}
 
 	// Now actually create the folder
-	if err := r.repo.Create(ctx, opts.Path, opts.Ref, nil, opts.Message); err != nil {
+	if _, err := r.repo.Create(ctx, opts.Path, opts.Ref, nil, opts.Message); err != nil {
 		return nil, fmt.Errorf("failed to create folder: %w", err)
 	}
 
@@ -263,10 +263,11 @@ func (r *DualReadWriter) createOrUpdate(ctx context.Context, create bool, opts D
 	}
 
 	// Create or update
+	var after *repository.FileInfo
 	if create {
-		err = r.repo.Create(ctx, opts.Path, opts.Ref, data, opts.Message)
+		after, err = r.repo.Create(ctx, opts.Path, opts.Ref, data, opts.Message)
 	} else {
-		err = r.repo.Update(ctx, opts.Path, opts.Ref, data, opts.Message)
+		after, err = r.repo.Update(ctx, opts.Path, opts.Ref, data, opts.Message)
 	}
 	if err != nil {
 		return nil, err // raw error is useful
@@ -277,6 +278,10 @@ func (r *DualReadWriter) createOrUpdate(ctx context.Context, create bool, opts D
 	// FIXME: to make sure if behaves in the same way as in sync, we should
 	// we should refactor the code to use the same function.
 	if r.shouldUpdateGrafanaDB(opts, parsed) {
+		parsed.Meta.SetSourceProperties(utils.SourceProperties{
+			Path:     after.Path,
+			Checksum: after.Hash,
+		})
 		if _, err := r.folders.EnsureFolderPathExist(ctx, opts.Path); err != nil {
 			return nil, fmt.Errorf("ensure folder path exists: %w", err)
 		}
@@ -445,7 +450,7 @@ func (r *DualReadWriter) moveFile(ctx context.Context, opts DualWriteOptions) (*
 		if err = r.repo.Delete(ctx, opts.OriginalPath, opts.Ref, opts.Message); err != nil {
 			return nil, fmt.Errorf("delete original file in repository: %w", err)
 		}
-		if err = r.repo.Create(ctx, opts.Path, opts.Ref, data, opts.Message); err != nil {
+		if _, err = r.repo.Create(ctx, opts.Path, opts.Ref, data, opts.Message); err != nil {
 			return nil, fmt.Errorf("create moved file with new content in repository: %w", err)
 		}
 	} else {

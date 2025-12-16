@@ -288,75 +288,87 @@ func (r *localRepository) calculateFileHash(path string) (string, int64, error) 
 	return hex.EncodeToString(hasher.Sum(nil)), size, nil
 }
 
-func (r *localRepository) Create(ctx context.Context, filepath string, ref string, data []byte, comment string) error {
+func (r *localRepository) Create(ctx context.Context, filepath string, ref string, data []byte, comment string) (*repository.FileInfo, error) {
 	if err := r.validateRequest(ref); err != nil {
-		return err
+		return nil, err
 	}
 
 	fpath := safepath.Join(r.path, filepath)
 	_, err := os.Stat(fpath)
 	if !errors.Is(err, os.ErrNotExist) {
 		if err != nil {
-			return apierrors.NewInternalError(fmt.Errorf("failed to check if file exists: %w", err))
+			return nil, apierrors.NewInternalError(fmt.Errorf("failed to check if file exists: %w", err))
 		}
-		return apierrors.NewAlreadyExists(schema.GroupResource{}, filepath)
+		return nil, apierrors.NewAlreadyExists(schema.GroupResource{}, filepath)
 	}
 
 	if safepath.IsDir(fpath) {
 		if data != nil {
-			return apierrors.NewBadRequest("data cannot be provided for a directory")
+			return nil, apierrors.NewBadRequest("data cannot be provided for a directory")
 		}
 
 		if err := os.MkdirAll(fpath, 0700); err != nil {
-			return apierrors.NewInternalError(fmt.Errorf("failed to create path: %w", err))
+			return nil, apierrors.NewInternalError(fmt.Errorf("failed to create path: %w", err))
 		}
 
-		return nil
+		return nil, nil
 	}
 
 	if err := os.MkdirAll(path.Dir(fpath), 0700); err != nil {
-		return apierrors.NewInternalError(fmt.Errorf("failed to create path: %w", err))
+		return nil, apierrors.NewInternalError(fmt.Errorf("failed to create path: %w", err))
 	}
 
-	return os.WriteFile(fpath, data, 0600)
+	if err := os.WriteFile(fpath, data, 0600); err != nil {
+		return nil, err
+	}
+
+	return r.Read(ctx, filepath, ref)
 }
 
-func (r *localRepository) Update(ctx context.Context, path string, ref string, data []byte, comment string) error {
+func (r *localRepository) Update(ctx context.Context, path string, ref string, data []byte, comment string) (*repository.FileInfo, error) {
 	if err := r.validateRequest(ref); err != nil {
-		return err
+		return nil, err
 	}
 
 	path = safepath.Join(r.path, path)
 	if safepath.IsDir(path) {
-		return apierrors.NewBadRequest("cannot update a directory")
+		return nil, apierrors.NewBadRequest("cannot update a directory")
 	}
 
 	f, err := os.Stat(path)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		return repository.ErrFileNotFound
+		return nil, repository.ErrFileNotFound
 	}
 	if f.IsDir() {
-		return apierrors.NewBadRequest("path exists but it is a directory")
+		return nil, apierrors.NewBadRequest("path exists but it is a directory")
 	}
 
-	return os.WriteFile(path, data, 0600)
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		return nil, err
+	}
+
+	return r.Read(ctx, path, ref)
 }
 
-func (r *localRepository) Write(ctx context.Context, fpath, ref string, data []byte, comment string) error {
+func (r *localRepository) Write(ctx context.Context, fpath, ref string, data []byte, comment string) (*repository.FileInfo, error) {
 	if err := r.validateRequest(ref); err != nil {
-		return err
+		return nil, err
 	}
 
 	fpath = safepath.Join(r.path, fpath)
 	if safepath.IsDir(fpath) {
-		return os.MkdirAll(fpath, 0700)
+		return nil, os.MkdirAll(fpath, 0700)
 	}
 
 	if err := os.MkdirAll(path.Dir(fpath), 0700); err != nil {
-		return apierrors.NewInternalError(fmt.Errorf("failed to create path: %w", err))
+		return nil, apierrors.NewInternalError(fmt.Errorf("failed to create path: %w", err))
 	}
 
-	return os.WriteFile(fpath, data, 0600)
+	if err := os.WriteFile(fpath, data, 0600); err != nil {
+		return nil, err
+	}
+
+	return r.Read(ctx, fpath, ref)
 }
 
 func (r *localRepository) Delete(ctx context.Context, path string, ref string, comment string) error {

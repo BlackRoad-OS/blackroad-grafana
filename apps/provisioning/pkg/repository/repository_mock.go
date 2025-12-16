@@ -39,21 +39,8 @@ func (_m *MockRepository) Config() *v0alpha1.Repository {
 }
 
 // Create provides a mock function with given fields: ctx, path, ref, data, message
-func (_m *MockRepository) Create(ctx context.Context, path string, ref string, data []byte, message string) error {
-	ret := _m.Called(ctx, path, ref, data, message)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Create")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte, string) error); ok {
-		r0 = rf(ctx, path, ref, data, message)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockRepository) Create(ctx context.Context, path string, ref string, data []byte, message string) (*FileInfo, error) {
+	return nil, nil
 }
 
 // Delete provides a mock function with given fields: ctx, path, ref, message
@@ -195,21 +182,8 @@ func (_m *MockRepository) Test(ctx context.Context) (*v0alpha1.TestResults, erro
 }
 
 // Update provides a mock function with given fields: ctx, path, ref, data, message
-func (_m *MockRepository) Update(ctx context.Context, path string, ref string, data []byte, message string) error {
-	ret := _m.Called(ctx, path, ref, data, message)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Update")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte, string) error); ok {
-		r0 = rf(ctx, path, ref, data, message)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockRepository) Update(ctx context.Context, path string, ref string, data []byte, message string) (*FileInfo, error) {
+	return nil, nil
 }
 
 // Validate provides a mock function with no fields
@@ -263,21 +237,8 @@ func (_m *MockRepository) Webhook(ctx context.Context, req *http.Request) (*v0al
 }
 
 // Write provides a mock function with given fields: ctx, path, ref, data, message
-func (_m *MockRepository) Write(ctx context.Context, path string, ref string, data []byte, message string) error {
-	ret := _m.Called(ctx, path, ref, data, message)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Write")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte, string) error); ok {
-		r0 = rf(ctx, path, ref, data, message)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockRepository) Write(ctx context.Context, path string, ref string, data []byte, message string) (*FileInfo, error) {
+	return nil, nil
 }
 
 // Move provides a mock function with given fields: ctx, oldPath, newPath, ref, message

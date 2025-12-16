@@ -776,7 +776,7 @@ func TestLocalRepository_Update(t *testing.T) {
 			_, repo := tc.setup(t)
 
 			// Execute the update operation
-			err := repo.Update(context.Background(), tc.path, tc.ref, tc.data, tc.comment)
+			_, err := repo.Update(context.Background(), tc.path, tc.ref, tc.data, tc.comment)
 
 			// Verify results
 			if tc.expectedErr != nil {
@@ -939,7 +939,7 @@ func TestLocalRepository_Write(t *testing.T) {
 			_, repo := tc.setup(t)
 
 			// Execute the write operation
-			err := repo.Write(context.Background(), tc.path, tc.ref, tc.data, tc.comment)
+			_, err := repo.Write(context.Background(), tc.path, tc.ref, tc.data, tc.comment)
 
 			// Verify results
 			if tc.expectedErr != nil {
@@ -1139,7 +1139,7 @@ func TestLocalRepository_Create(t *testing.T) {
 			_, repo := tc.setup(t)
 
 			// Execute the create operation
-			err := repo.Create(context.Background(), tc.path, tc.ref, tc.data, tc.comment)
+			_, err := repo.Create(context.Background(), tc.path, tc.ref, tc.data, tc.comment)
 
 			// Verify results
 			if tc.expectedErr != nil {

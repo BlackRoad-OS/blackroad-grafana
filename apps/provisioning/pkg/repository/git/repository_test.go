@@ -939,7 +939,7 @@ func TestGitRepository_Create(t *testing.T) {
 				},
 			}
 
-			err := gitRepo.Create(context.Background(), tt.path, tt.ref, tt.data, tt.comment)
+			_, err := gitRepo.Create(context.Background(), tt.path, tt.ref, tt.data, tt.comment)
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -1042,7 +1042,7 @@ func TestGitRepository_Update(t *testing.T) {
 				},
 			}
 
-			err := gitRepo.Update(context.Background(), tt.path, tt.ref, tt.data, tt.comment)
+			_, err := gitRepo.Update(context.Background(), tt.path, tt.ref, tt.data, tt.comment)
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -1461,7 +1461,7 @@ func TestGitRepository_Write(t *testing.T) {
 				},
 			}
 
-			err := gitRepo.Write(context.Background(), tt.path, tt.ref, tt.data, tt.message)
+			_, err := gitRepo.Write(context.Background(), tt.path, tt.ref, tt.data, tt.message)
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -2273,7 +2273,7 @@ func TestGitRepository_EdgeCases(t *testing.T) {
 			},
 		}
 
-		err := gitRepo.Create(context.Background(), "newdir/", "main", []byte("data"), "comment")
+		_, err := gitRepo.Create(context.Background(), "newdir/", "main", []byte("data"), "comment")
 
 		// This should fail because we're providing data for a directory
 		require.Error(t, err)
@@ -2288,7 +2288,7 @@ func TestGitRepository_EdgeCases(t *testing.T) {
 			},
 		}
 
-		err := gitRepo.Update(context.Background(), "directory/", "main", []byte("data"), "comment")
+		_, err := gitRepo.Update(context.Background(), "directory/", "main", []byte("data"), "comment")
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "cannot update a directory")
@@ -2311,7 +2311,7 @@ func TestGitRepository_EdgeCases(t *testing.T) {
 			},
 		}
 
-		err := gitRepo.Write(context.Background(), "test.yaml", "main", []byte("data"), "message")
+		_, err := gitRepo.Write(context.Background(), "test.yaml", "main", []byte("data"), "message")
 
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "check if file exists before writing")
@@ -3008,7 +3008,7 @@ func TestGitRepository_Create_ErrorConditions(t *testing.T) {
 				},
 			}
 
-			err := gitRepo.Create(context.Background(), "test.yaml", "main", []byte("content"), "comment")
+			_, err := gitRepo.Create(context.Background(), "test.yaml", "main", []byte("content"), "comment")
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -3073,7 +3073,7 @@ func TestGitRepository_Update_ErrorConditions(t *testing.T) {
 				},
 			}
 
-			err := gitRepo.Update(context.Background(), "test.yaml", "main", []byte("content"), "comment")
+			_, err := gitRepo.Update(context.Background(), "test.yaml", "main", []byte("content"), "comment")
 
 			if tt.wantError {
 				require.Error(t, err)
@@ -3266,9 +3266,9 @@ func TestGitRepository_EmptyRefHandling(t *testing.T) {
 			var err error
 			switch tt.method {
 			case "Create":
-				err = gitRepo.Create(context.Background(), "test.yaml", "", []byte("content"), "comment")
+				_, err = gitRepo.Create(context.Background(), "test.yaml", "", []byte("content"), "comment")
 			case "Update":
-				err = gitRepo.Update(context.Background(), "test.yaml", "", []byte("content"), "comment")
+				_, err = gitRepo.Update(context.Background(), "test.yaml", "", []byte("content"), "comment")
 			case "Delete":
 				err = gitRepo.Delete(context.Background(), "test.yaml", "", "comment")
 			}
@@ -3428,7 +3428,7 @@ func TestGitRepository_Update_EnsureBranchExistsError(t *testing.T) {
 		},
 	}
 
-	err := gitRepo.Update(context.Background(), "test.yaml", "feature", []byte("content"), "comment")
+	_, err := gitRepo.Update(context.Background(), "test.yaml", "feature", []byte("content"), "comment")
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "branch error")
@@ -3451,7 +3451,7 @@ func TestGitRepository_Create_EnsureBranchExistsError(t *testing.T) {
 		},
 	}
 
-	err := gitRepo.Create(context.Background(), "test.yaml", "feature", []byte("content"), "comment")
+	_, err := gitRepo.Create(context.Background(), "test.yaml", "feature", []byte("content"), "comment")
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "branch error")
@@ -3538,7 +3538,7 @@ func TestGitRepository_Write_DefaultRef(t *testing.T) {
 	}
 
 	// Test Write with empty ref to trigger default branch usage
-	err := gitRepo.Write(context.Background(), "test.yaml", "", []byte("content"), "message")
+	_, err := gitRepo.Write(context.Background(), "test.yaml", "", []byte("content"), "message")
 
 	require.NoError(t, err)
 }

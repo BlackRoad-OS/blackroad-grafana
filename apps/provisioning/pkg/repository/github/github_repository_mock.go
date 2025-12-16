@@ -181,21 +181,8 @@ func (_c *MockGithubRepository_Config_Call) RunAndReturn(run func() *v0alpha1.Re
 }
 
 // Create provides a mock function with given fields: ctx, path, ref, data, message
-func (_m *MockGithubRepository) Create(ctx context.Context, path string, ref string, data []byte, message string) error {
-	ret := _m.Called(ctx, path, ref, data, message)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Create")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte, string) error); ok {
-		r0 = rf(ctx, path, ref, data, message)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockGithubRepository) Create(ctx context.Context, path string, ref string, data []byte, message string) (*repository.FileInfo, error) {
+	return nil, nil
 }
 
 // MockGithubRepository_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
@@ -948,21 +935,8 @@ func (_c *MockGithubRepository_Test_Call) RunAndReturn(run func(context.Context)
 }
 
 // Update provides a mock function with given fields: ctx, path, ref, data, message
-func (_m *MockGithubRepository) Update(ctx context.Context, path string, ref string, data []byte, message string) error {
-	ret := _m.Called(ctx, path, ref, data, message)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Update")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte, string) error); ok {
-		r0 = rf(ctx, path, ref, data, message)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockGithubRepository) Update(ctx context.Context, path string, ref string, data []byte, message string) (*repository.FileInfo, error) {
+	return nil, nil
 }
 
 // MockGithubRepository_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
@@ -1045,21 +1019,8 @@ func (_c *MockGithubRepository_Validate_Call) RunAndReturn(run func() field.Erro
 }
 
 // Write provides a mock function with given fields: ctx, path, ref, data, message
-func (_m *MockGithubRepository) Write(ctx context.Context, path string, ref string, data []byte, message string) error {
-	ret := _m.Called(ctx, path, ref, data, message)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Write")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte, string) error); ok {
-		r0 = rf(ctx, path, ref, data, message)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
+func (_m *MockGithubRepository) Write(ctx context.Context, path string, ref string, data []byte, message string) (*repository.FileInfo, error) {
+	return nil, nil
 }
 
 // MockGithubRepository_Write_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Write'

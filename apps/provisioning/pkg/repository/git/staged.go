@@ -121,16 +121,20 @@ func (r *stagedGitRepository) handleCommitAndPush(ctx context.Context, message s
 	}
 }
 
-func (r *stagedGitRepository) Create(ctx context.Context, path, ref string, data []byte, message string) error {
+func (r *stagedGitRepository) Create(ctx context.Context, path, ref string, data []byte, message string) (*repository.FileInfo, error) {
 	if !r.isRefSupported(ref) {
-		return errors.New("ref is not supported for staged repository")
+		return nil, errors.New("ref is not supported for staged repository")
 	}
 
 	if err := r.create(ctx, path, data, r.writer); err != nil {
-		return err
+		return nil, err
 	}
 
-	return r.handleCommitAndPush(ctx, message)
+	if err := r.handleCommitAndPush(ctx, message); err != nil {
+		return nil, err
+	}
+
+	return r.Read(ctx, path, ref) // ??? or
 }
 
 func (r *stagedGitRepository) blobExists(ctx context.Context, path string) (bool, error) {
@@ -140,43 +144,51 @@ func (r *stagedGitRepository) blobExists(ctx context.Context, path string) (bool
 	return r.writer.BlobExists(ctx, path)
 }
 
-func (r *stagedGitRepository) Write(ctx context.Context, path, ref string, data []byte, message string) error {
+func (r *stagedGitRepository) Write(ctx context.Context, path, ref string, data []byte, message string) (*repository.FileInfo, error) {
 	if !r.isRefSupported(ref) {
-		return errors.New("ref is not supported for staged repository")
+		return nil, errors.New("ref is not supported for staged repository")
 	}
 
 	exists, err := r.blobExists(ctx, path)
 	if err != nil {
-		return fmt.Errorf("check if file exists: %w", err)
+		return nil, fmt.Errorf("check if file exists: %w", err)
 	}
 
 	if exists {
 		if err := r.update(ctx, path, data, r.writer); err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		if err := r.create(ctx, path, data, r.writer); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return r.handleCommitAndPush(ctx, message)
+	if err := r.handleCommitAndPush(ctx, message); err != nil {
+		return nil, err
+	}
+
+	return r.Read(ctx, path, ref) // ??? or
 }
 
-func (r *stagedGitRepository) Update(ctx context.Context, path, ref string, data []byte, message string) error {
+func (r *stagedGitRepository) Update(ctx context.Context, path, ref string, data []byte, message string) (*repository.FileInfo, error) {
 	if !r.isRefSupported(ref) {
-		return errors.New("ref is not supported for staged repository")
+		return nil, errors.New("ref is not supported for staged repository")
 	}
 
 	if safepath.IsDir(path) {
-		return errors.New("cannot update a directory in a staged repository")
+		return nil, errors.New("cannot update a directory in a staged repository")
 	}
 
 	if err := r.update(ctx, path, data, r.writer); err != nil {
-		return err
+		return nil, err
 	}
 
-	return r.handleCommitAndPush(ctx, message)
+	if err := r.handleCommitAndPush(ctx, message); err != nil {
+		return nil, err
+	}
+
+	return r.Read(ctx, path, ref) // ??? or
 }
 
 func (r *stagedGitRepository) Delete(ctx context.Context, path, ref, message string) error {
