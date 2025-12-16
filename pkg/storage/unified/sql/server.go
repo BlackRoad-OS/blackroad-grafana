@@ -46,7 +46,7 @@ type ServerOptions struct {
 	OwnsIndexFn      func(key resource.NamespacedResource) (bool, error)
 }
 
-func NewResourceServer(opts ServerOptions) (resource.ResourceServer, error) {
+func NewResourceServer(opts ServerOptions) (resource.ResourceServer, resource.SearchServer, error) {
 	apiserverCfg := opts.Cfg.SectionWithEnvOverrides("grafana-apiserver")
 
 	if opts.SecureValues == nil && opts.Cfg != nil && opts.Cfg.SecretsManagement.GrpcClientEnable {
@@ -57,7 +57,7 @@ func NewResourceServer(opts ServerOptions) (resource.ResourceServer, error) {
 			nil, // not needed for gRPC client mode
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create inline secure value service: %w", err)
+			return nil, nil, fmt.Errorf("failed to create inline secure value service: %w", err)
 		}
 		opts.SecureValues = inlineSecureValueService
 	}
@@ -77,7 +77,7 @@ func NewResourceServer(opts ServerOptions) (resource.ResourceServer, error) {
 		dir := strings.Replace(serverOptions.Blob.URL, "./data", opts.Cfg.DataPath, 1)
 		err := os.MkdirAll(dir, 0700)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		serverOptions.Blob.URL = "file:///" + dir
 	}
@@ -94,7 +94,7 @@ func NewResourceServer(opts ServerOptions) (resource.ResourceServer, error) {
 	} else {
 		eDB, err := dbimpl.ProvideResourceDB(opts.DB, opts.Cfg, opts.Tracer)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		isHA := isHighAvailabilityEnabled(opts.Cfg.SectionWithEnvOverrides("database"),
@@ -108,20 +108,31 @@ func NewResourceServer(opts ServerOptions) (resource.ResourceServer, error) {
 			LastImportTimeMaxAge: opts.SearchOptions.MaxIndexAge, // No need to keep last_import_times older than max index age.
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		serverOptions.Backend = backend
 		serverOptions.Diagnostics = backend
 		serverOptions.Lifecycle = backend
 	}
 
-	serverOptions.Search = opts.SearchOptions
-	serverOptions.IndexMetrics = opts.IndexMetrics
+	search, err := resource.NewSearchServer(opts.SearchOptions, opts.Backend, opts.AccessClient, nil, opts.IndexMetrics, opts.OwnsIndexFn)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize search: %w", err)
+	}
+
+	if err := search.Init(context.Background()); err != nil {
+		return nil, nil, fmt.Errorf("failed to initialize search: %w", err)
+	}
+
+	serverOptions.Search = search
 	serverOptions.QOSQueue = opts.QOSQueue
-	serverOptions.OwnsIndexFn = opts.OwnsIndexFn
 	serverOptions.OverridesService = opts.OverridesService
 
-	return resource.NewResourceServer(serverOptions)
+	rs, err := resource.NewResourceServer(serverOptions)
+	if err != nil {
+		_ = search.Stop(context.Background())
+	}
+	return rs, nil, err
 }
 
 // isHighAvailabilityEnabled determines if high availability mode should

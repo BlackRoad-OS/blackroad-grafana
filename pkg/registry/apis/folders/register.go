@@ -41,7 +41,6 @@ import (
 	"github.com/grafana/grafana/pkg/services/folder"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/storage/unified/apistore"
-	"github.com/grafana/grafana/pkg/storage/unified/resource"
 	"github.com/grafana/grafana/pkg/storage/unified/resourcepb"
 )
 
@@ -78,7 +77,7 @@ func RegisterAPIService(cfg *setting.Cfg,
 	acService accesscontrol.Service,
 	accessClient authlib.AccessClient,
 	registerer prometheus.Registerer,
-	unified resource.ResourceClient,
+	unified resourcepb.ResourceIndexClient,
 	zanzanaClient zanzana.Client,
 ) *FolderAPIBuilder {
 	builder := &FolderAPIBuilder{
@@ -97,7 +96,7 @@ func RegisterAPIService(cfg *setting.Cfg,
 	return builder
 }
 
-func NewAPIService(ac authlib.AccessClient, searcher resource.ResourceClient, features featuremgmt.FeatureToggles, zanzanaClient zanzana.Client, resourcePermissionsSvc *dynamic.NamespaceableResourceInterface) *FolderAPIBuilder {
+func NewAPIService(ac authlib.AccessClient, searcher resourcepb.ResourceIndexClient, features featuremgmt.FeatureToggles, zanzanaClient zanzana.Client, resourcePermissionsSvc *dynamic.NamespaceableResourceInterface) *FolderAPIBuilder {
 	return &FolderAPIBuilder{
 		features:               features,
 		accessClient:           ac,
