@@ -114,7 +114,6 @@ export function getYRange(alignedFrame: DataFrame): Range.MinMax {
   return [roundedMin, roundedMax];
 }
 
-// TODO: #112977 enable highlight index
 const HIGHLIGHT_IDX_POINT_SIZE = 6;
 
 const defaultConfig: GraphFieldConfig = {
