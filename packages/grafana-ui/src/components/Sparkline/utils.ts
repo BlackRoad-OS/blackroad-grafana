@@ -2,7 +2,7 @@ import { Range } from 'uplot';
 
 import {
   applyNullInsertThreshold,
-  colorManipulator,
+  // colorManipulator,
   DataFrame,
   FieldConfig,
   FieldSparkline,
@@ -23,7 +23,7 @@ import {
   VisibilityMode,
   ScaleDirection,
   ScaleOrientation,
-  FieldColorModeId,
+  // FieldColorModeId,
 } from '@grafana/schema';
 
 import { UPlotConfigBuilder } from '../uPlot/config/UPlotConfigBuilder';
