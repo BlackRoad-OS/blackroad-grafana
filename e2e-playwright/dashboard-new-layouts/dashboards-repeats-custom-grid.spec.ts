@@ -1,14 +1,12 @@
-import { test, expect } from '@grafana/plugin-e2e';
-
 import testV2DashWithRepeats from '../dashboards/V2DashWithRepeats.json';
 
+import { test, expect } from './fixtures';
 import {
   checkRepeatedPanelTitles,
   verifyChanges,
   movePanel,
   getPanelPosition,
   saveDashboard,
-  importTestDashboard,
   goToEmbeddedPanel,
 } from './utils';
 
@@ -34,8 +32,8 @@ test.describe(
     tag: ['@dashboards'],
   },
   () => {
-    test('can enable repeats', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(page, selectors, 'Custom grid repeats - add repeats');
+    test('can enable repeats', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - add repeats');
 
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
 
@@ -62,13 +60,8 @@ test.describe(
       await checkRepeatedPanelTitles(dashboardPage, selectors, repeatTitleBase, repeatOptions);
     });
 
-    test('can update repeats with variable change', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Custom grid repeats - update on variable change',
-        JSON.stringify(testV2DashWithRepeats)
-      );
+    test('can update repeats with variable change', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - update on variable change', JSON.stringify(testV2DashWithRepeats));
 
       await dashboardPage
         .getByGrafanaSelector(
@@ -94,13 +87,8 @@ test.describe(
         )
       ).toBeHidden();
     });
-    test('can update repeats in edit pane', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Custom grid repeats - update through edit pane',
-        JSON.stringify(testV2DashWithRepeats)
-      );
+    test('can update repeats in edit pane', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - update through edit pane', JSON.stringify(testV2DashWithRepeats));
 
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
 
@@ -122,13 +110,8 @@ test.describe(
       await checkRepeatedPanelTitles(dashboardPage, selectors, newTitleBase, repeatOptions);
     });
 
-    test('can update repeats in panel editor', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Custom grid repeats - update through panel editor',
-        JSON.stringify(testV2DashWithRepeats)
-      );
+    test('can update repeats in panel editor', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - update through panel editor', JSON.stringify(testV2DashWithRepeats));
 
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
 
@@ -181,10 +164,13 @@ test.describe(
       await checkRepeatedPanelTitles(dashboardPage, selectors, newTitleBase, repeatOptions);
     });
 
-    test('can update repeats in panel editor when loaded directly', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
+    test('can update repeats in panel editor when loaded directly', async ({
+      dashboardPage,
+      selectors,
+      page,
+      importDashboard,
+    }) => {
+      await importDashboard(
         'Custom grid repeats - update through directly loaded panel editor',
         JSON.stringify(testV2DashWithRepeats)
       );
@@ -232,13 +218,8 @@ test.describe(
 
       await checkRepeatedPanelTitles(dashboardPage, selectors, newTitleBase, repeatOptions);
     });
-    test('can move repeated panels', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Custom grid repeats - move repeated panels',
-        JSON.stringify(testV2DashWithRepeats)
-      );
+    test('can move repeated panels', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - move repeated panels', JSON.stringify(testV2DashWithRepeats));
 
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
 
@@ -276,13 +257,8 @@ test.describe(
         `${repeatTitleBase}${repeatOptions.at(-1)}`
       );
     });
-    test('can view repeated panel', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Custom grid repeats - move repeated panels',
-        JSON.stringify(testV2DashWithRepeats)
-      );
+    test('can view repeated panel', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - move repeated panels', JSON.stringify(testV2DashWithRepeats));
 
       await dashboardPage
         .getByGrafanaSelector(selectors.components.Panels.Panel.title(`${repeatTitleBase}${repeatOptions.at(-1)}`))
@@ -332,10 +308,8 @@ test.describe(
       ).toBeVisible();
     });
 
-    test('can view embedded repeated panel', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
+    test('can view embedded repeated panel', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard(
         'Custom grid repeats - view embedded repeated panel',
         JSON.stringify(testV2DashWithRepeats)
       );
@@ -353,13 +327,8 @@ test.describe(
         )
       ).toBeVisible();
     });
-    test('can remove repeats', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Custom grid repeats - remove repeats',
-        JSON.stringify(testV2DashWithRepeats)
-      );
+    test('can remove repeats', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Custom grid repeats - remove repeats', JSON.stringify(testV2DashWithRepeats));
 
       // verify 6 panels are present (4 repeats and 2 normal)
       expect(

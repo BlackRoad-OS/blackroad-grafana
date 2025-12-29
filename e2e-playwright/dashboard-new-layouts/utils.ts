@@ -160,7 +160,12 @@ export async function verifyChanges(
   await dashboardPage.getByGrafanaSelector(selectors.components.Drawer.General.close).click();
 }
 
-export async function importTestDashboard(page: Page, selectors: E2ESelectorGroups, title: string, dashInput?: string) {
+export async function importTestDashboard(
+  page: Page,
+  selectors: E2ESelectorGroups,
+  title: string,
+  dashInput?: string
+): Promise<string> {
   await page.goto(selectors.pages.ImportDashboard.url);
   await page
     .getByTestId(selectors.components.DashboardImportPage.textarea)
@@ -177,6 +182,15 @@ export async function importTestDashboard(page: Page, selectors: E2ESelectorGrou
   }
 
   await expect(page.locator('[data-testid="uplot-main-div"]').first()).toBeVisible();
+
+  if (testV2Dashboard.metadata.uid) {
+    return testV2Dashboard.metadata.uid;
+  }
+  // else extract from url
+  const url = new URL(page.url());
+  const pathParts = url.pathname.split('/');
+  const dIndex = pathParts.indexOf('d');
+  return dIndex !== -1 ? pathParts[dIndex + 1] : '';
 }
 
 export async function goToEmbeddedPanel(page: Page) {

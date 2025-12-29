@@ -1,11 +1,9 @@
-import { test, expect } from '@grafana/plugin-e2e';
-
 import V2DashWithTabRepeats from '../dashboards/V2DashWithTabRepeats.json';
 
+import { test, expect } from './fixtures';
 import {
   verifyChanges,
   saveDashboard,
-  importTestDashboard,
   goToEmbeddedPanel,
   checkRepeatedTabTitles,
   groupIntoTab,
@@ -35,8 +33,8 @@ test.describe(
     tag: ['@dashboards'],
   },
   () => {
-    test('can enable tab repeats', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(page, selectors, 'Tabs layout repeats - add repeats');
+    test('can enable tab repeats', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - add repeats');
 
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
 
@@ -69,13 +67,8 @@ test.describe(
       await checkRepeatedTabTitles(dashboardPage, selectors, repeatTitleBase, repeatOptions);
     });
 
-    test('can update tab repeats with variable change', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Tabs layout repeats - update on variable change',
-        JSON.stringify(V2DashWithTabRepeats)
-      );
+    test('can update tab repeats with variable change', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - update on variable change', JSON.stringify(V2DashWithTabRepeats));
 
       const c1Var = dashboardPage.getByGrafanaSelector(selectors.pages.Dashboard.SubMenu.submenuItemLabels('c1'));
       await c1Var
@@ -97,13 +90,8 @@ test.describe(
         dashboardPage.getByGrafanaSelector(selectors.components.Tab.title(`${repeatTitleBase}${repeatOptions.at(-1)}`))
       ).toBeHidden();
     });
-    test('can update repeats in edit pane', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Tabs layout repeats - update through edit pane',
-        JSON.stringify(V2DashWithTabRepeats)
-      );
+    test('can update repeats in edit pane', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - update through edit pane', JSON.stringify(V2DashWithTabRepeats));
 
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
       // select first/original repeat tab to activate edit pane
@@ -125,10 +113,8 @@ test.describe(
       await checkRepeatedTabTitles(dashboardPage, selectors, newTitleBase, repeatOptions);
     });
 
-    test('can update repeats after panel change', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
+    test('can update repeats after panel change', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard(
         'Tabs layout repeats - update repeats after panel change',
         JSON.stringify(V2DashWithTabRepeats)
       );
@@ -165,10 +151,13 @@ test.describe(
       ).toBeVisible();
     });
 
-    test('can update repeats after panel change in editor', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
+    test('can update repeats after panel change in editor', async ({
+      dashboardPage,
+      selectors,
+      page,
+      importDashboard,
+    }) => {
+      await importDashboard(
         'Tabs layout repeats - update repeats after panel change in editor',
         JSON.stringify(V2DashWithTabRepeats)
       );
@@ -225,10 +214,13 @@ test.describe(
       ).toBeVisible();
     });
 
-    test('can hide canvas grid add row action in repeats', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
+    test('can hide canvas grid add row action in repeats', async ({
+      dashboardPage,
+      selectors,
+      page,
+      importDashboard,
+    }) => {
+      await importDashboard(
         'Tabs layout repeats - hide canvas add action in repeats',
         JSON.stringify(V2DashWithTabRepeats)
       );
@@ -244,13 +236,8 @@ test.describe(
       await expect(dashboardPage.getByGrafanaSelector(selectors.components.CanvasGridAddActions.addRow)).toBeHidden();
     });
 
-    test('can move repeated tabs', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Tabs layout repeats - move repeated tabs',
-        JSON.stringify(V2DashWithTabRepeats)
-      );
+    test('can move repeated tabs', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - move repeated tabs', JSON.stringify(V2DashWithTabRepeats));
       await dashboardPage.getByGrafanaSelector(selectors.components.NavToolbar.editDashboard.editButton).click();
       await moveTab(dashboardPage, page, selectors, `${repeatTitleBase}${repeatOptions.at(0)}`, 'New tab');
 
@@ -269,13 +256,8 @@ test.describe(
       expect(normalTab2?.x).toBeLessThan(repeatedTab2?.x || 0);
     });
 
-    test('can load into repeated tab', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Tabs layout repeats - can load into repeated tab',
-        JSON.stringify(V2DashWithTabRepeats)
-      );
+    test('can load into repeated tab', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - can load into repeated tab', JSON.stringify(V2DashWithTabRepeats));
 
       await dashboardPage
         .getByGrafanaSelector(selectors.components.Tab.title(`${repeatTitleBase}${repeatOptions.at(2)}`))
@@ -292,13 +274,8 @@ test.describe(
       ).toBe('true');
     });
 
-    test('can view panels in repeated tab', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Tabs layout repeats - view panels in repeated tabs',
-        JSON.stringify(V2DashWithTabRepeats)
-      );
+    test('can view panels in repeated tab', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - view panels in repeated tabs', JSON.stringify(V2DashWithTabRepeats));
 
       // non repeated panel in repeated tab
       await dashboardPage.getByGrafanaSelector(selectors.components.Panels.Panel.title('New panel')).first().hover();
@@ -367,10 +344,8 @@ test.describe(
       ).toBeVisible();
     });
 
-    test('can view embedded panels in repeated tab', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
+    test('can view embedded panels in repeated tab', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard(
         'Tabs layout repeats - view embedded panels in repeated tabs',
         JSON.stringify(V2DashWithTabRepeats)
       );
@@ -417,13 +392,8 @@ test.describe(
       ).toBeVisible();
     });
 
-    test('can remove repeats', async ({ dashboardPage, selectors, page }) => {
-      await importTestDashboard(
-        page,
-        selectors,
-        'Tabs layout repeats - remove repeats',
-        JSON.stringify(V2DashWithTabRepeats)
-      );
+    test('can remove repeats', async ({ dashboardPage, selectors, page, importDashboard }) => {
+      await importDashboard('Tabs layout repeats - remove repeats', JSON.stringify(V2DashWithTabRepeats));
 
       // verify 5 tabs are present (4 repeats and 1 normal)
       await checkRepeatedTabTitles(dashboardPage, selectors, repeatTitleBase, repeatOptions);
