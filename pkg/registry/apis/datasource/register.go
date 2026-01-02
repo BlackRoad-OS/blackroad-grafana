@@ -89,6 +89,7 @@ func RegisterAPIService(
 		}
 
 		builder, err = NewDataSourceAPIBuilder(
+			pluginJSON.ID+".datasource.grafana.app",
 			pluginJSON,
 			client,
 			datasources.GetDatasourceProvider(pluginJSON),
@@ -119,6 +120,7 @@ type PluginClient interface {
 }
 
 func NewDataSourceAPIBuilder(
+	groupName string,
 	plugin plugins.JSONData,
 	client PluginClient,
 	datasources PluginDatasourceProvider,
@@ -127,13 +129,13 @@ func NewDataSourceAPIBuilder(
 	loadQueryTypes bool,
 	configCrudUseNewApis bool,
 ) (*DataSourceAPIBuilder, error) {
-	group, err := plugins.GetDatasourceGroupNameFromPluginID(plugin.ID)
-	if err != nil {
-		return nil, err
-	}
-
+	// group, err := plugins.GetDatasourceGroupNameFromPluginID(plugin.ID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	var err error
 	builder := &DataSourceAPIBuilder{
-		datasourceResourceInfo: datasourceV0.DataSourceResourceInfo.WithGroupAndShortName(group, plugin.ID),
+		datasourceResourceInfo: datasourceV0.DataSourceResourceInfo.WithGroupAndShortName(groupName, plugin.ID),
 		pluginJSON:             plugin,
 		client:                 client,
 		datasources:            datasources,
@@ -143,7 +145,7 @@ func NewDataSourceAPIBuilder(
 	}
 	if loadQueryTypes {
 		// In the future, this will somehow come from the plugin
-		builder.queryTypes, err = getHardcodedQueryTypes(group)
+		builder.queryTypes, err = getHardcodedQueryTypes(groupName)
 	}
 	return builder, err
 }
