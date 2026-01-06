@@ -289,15 +289,15 @@ func getAnnotationsJSON(withFolder bool) string {
 // runTestSQLBackendFieldsCompatibility tests that KV backend with RvManager populates all SQL backend legacy fields
 func runTestSQLBackendFieldsCompatibility(t *testing.T, sqlBackend, kvBackend resource.StorageBackend, nsPrefix string, db sqldb.DB) {
 	ctx := testutil.NewDefaultTestContext(t)
-	
+
 	// Create unique namespace for isolation
 	namespace := nsPrefix + "-fields-test"
-	
+
 	// Test SQL backend with 3 resources through complete lifecycle
 	t.Run("SQL Backend Operations", func(t *testing.T) {
 		runSQLBackendFieldsTest(t, sqlBackend, namespace+"-sql", db, ctx)
 	})
-	
+
 	// Test KV backend with 3 resources through complete lifecycle
 	t.Run("KV Backend Operations", func(t *testing.T) {
 		runSQLBackendFieldsTest(t, kvBackend, namespace+"-kv", db, ctx)
@@ -338,19 +338,19 @@ func runSQLBackendFieldsTest(t *testing.T, backend resource.StorageBackend, name
 		name   string
 		folder string
 	}{
-		{"test-resource-1", ""},           // No folder
+		{"test-resource-1", ""},            // No folder
 		{"test-resource-2", "test-folder"}, // With folder
-		{"test-resource-3", ""},           // No folder
+		{"test-resource-3", ""},            // No folder
 	}
 
 	// Track resource versions for each resource
 	resourceVersions := make([][]int64, len(resources)) // [resourceIndex][versionIndex]
-	
+
 	// Create 3 resources
 	for i, res := range resources {
 		key := &resourcepb.ResourceKey{
 			Group:     "playlist.grafana.app",
-			Resource:  "playlists", 
+			Resource:  "playlists",
 			Namespace: namespace,
 			Name:      res.name,
 		}
@@ -378,7 +378,7 @@ func runSQLBackendFieldsTest(t *testing.T, backend resource.StorageBackend, name
 		require.NoError(t, err)
 		require.Nil(t, created.Error)
 		require.Greater(t, created.ResourceVersion, int64(0))
-		
+
 		// Store the resource version
 		resourceVersions[i] = append(resourceVersions[i], created.ResourceVersion)
 	}
@@ -395,7 +395,7 @@ func runSQLBackendFieldsTest(t *testing.T, backend resource.StorageBackend, name
 		// Update resource JSON with generation=2 for updates
 		resourceJSON := fmt.Sprintf(`{
 			"apiVersion": "playlist.grafana.app/v0alpha1",
-			"kind": "Playlist", 
+			"kind": "Playlist",
 			"metadata": {
 				"name": "%s",
 				"namespace": "%s",
@@ -417,7 +417,7 @@ func runSQLBackendFieldsTest(t *testing.T, backend resource.StorageBackend, name
 		require.NoError(t, err)
 		require.Nil(t, updated.Error)
 		require.Greater(t, updated.ResourceVersion, currentRV)
-		
+
 		// Store the new resource version
 		resourceVersions[i] = append(resourceVersions[i], updated.ResourceVersion)
 	}
@@ -440,7 +440,7 @@ func runSQLBackendFieldsTest(t *testing.T, backend resource.StorageBackend, name
 		require.NoError(t, err)
 		require.Nil(t, deleted.Error)
 		require.Greater(t, deleted.ResourceVersion, currentRV)
-		
+
 		// Store the delete resource version
 		resourceVersions[i] = append(resourceVersions[i], deleted.ResourceVersion)
 	}
@@ -491,9 +491,9 @@ type ResourceVersionRecord struct {
 func verifyResourceHistoryTable(t *testing.T, db sqldb.DB, namespace string, resources []struct{ name, folder string }, resourceVersions [][]int64) {
 	ctx := context.Background()
 	query := buildCrossDatabaseQuery(db.DriverName(), `
-		SELECT guid, "group", resource, namespace, name, value, action, folder, 
+		SELECT guid, "group", resource, namespace, name, value, action, folder,
 		       previous_resource_version, generation, resource_version
-		FROM resource_history 
+		FROM resource_history
 		WHERE namespace = ?
 		ORDER BY resource_version ASC
 	`)
@@ -527,14 +527,14 @@ func verifyResourceHistoryTable(t *testing.T, db sqldb.DB, namespace string, res
 		verifyResourceHistoryRecord(t, createRecord, res, resourceIdx, 1, 0, 1, resourceVersions[resourceIdx][0])
 		recordIndex++
 	}
-	
+
 	for resourceIdx, res := range resources {
-		// Check update record (action=2, generation=2)  
+		// Check update record (action=2, generation=2)
 		updateRecord := records[recordIndex]
 		verifyResourceHistoryRecord(t, updateRecord, res, resourceIdx, 2, resourceVersions[resourceIdx][0], 2, resourceVersions[resourceIdx][1])
 		recordIndex++
 	}
-	
+
 	for resourceIdx, res := range resources[:2] {
 		// Check delete record (action=3, generation=0) - only first 2 resources were deleted
 		deleteRecord := records[recordIndex]
@@ -547,38 +547,38 @@ func verifyResourceHistoryTable(t *testing.T, db sqldb.DB, namespace string, res
 func verifyResourceHistoryRecord(t *testing.T, record ResourceHistoryRecord, expectedRes struct{ name, folder string }, resourceIdx, expectedAction int, expectedPrevRV int64, expectedGeneration int, expectedRV int64) {
 	// Validate GUID (should be non-empty)
 	require.NotEmpty(t, record.GUID, "GUID should not be empty")
-	
+
 	// Validate group/resource/namespace/name
 	require.Equal(t, "playlist.grafana.app", record.Group)
 	require.Equal(t, "playlists", record.Resource)
 	require.Equal(t, expectedRes.name, record.Name)
-	
+
 	// Validate value contains expected JSON - server modifies/formats the JSON differently for different operations
 	// Check for both formats (with and without space after colon)
-	nameFound := strings.Contains(record.Value, fmt.Sprintf(`"name": "%s"`, expectedRes.name)) || 
-	             strings.Contains(record.Value, fmt.Sprintf(`"name":"%s"`, expectedRes.name))
+	nameFound := strings.Contains(record.Value, fmt.Sprintf(`"name": "%s"`, expectedRes.name)) ||
+		strings.Contains(record.Value, fmt.Sprintf(`"name":"%s"`, expectedRes.name))
 	require.True(t, nameFound, "JSON should contain the expected name field")
-	
+
 	kindFound := strings.Contains(record.Value, `"kind": "Playlist"`) ||
-	             strings.Contains(record.Value, `"kind":"Playlist"`)
+		strings.Contains(record.Value, `"kind":"Playlist"`)
 	require.True(t, kindFound, "JSON should contain the expected kind field")
-	
+
 	// Validate action
 	require.Equal(t, expectedAction, record.Action)
-	
+
 	// Validate folder
 	if expectedRes.folder == "" {
 		require.Equal(t, "", record.Folder, "Folder should be empty when no folder annotation")
 	} else {
 		require.Equal(t, expectedRes.folder, record.Folder, "Folder should match annotation")
 	}
-	
+
 	// Validate previous_resource_version
 	require.Equal(t, expectedPrevRV, record.PreviousResourceVersion)
-	
+
 	// Validate generation: 1 for create, 2 for update, 0 for delete
 	require.Equal(t, expectedGeneration, record.Generation)
-	
+
 	// Validate resource_version
 	require.Equal(t, expectedRV, record.ResourceVersion)
 }
@@ -589,7 +589,7 @@ func verifyResourceTable(t *testing.T, db sqldb.DB, namespace string, resources 
 	query := buildCrossDatabaseQuery(db.DriverName(), `
 		SELECT guid, "group", resource, namespace, name, value, action, folder,
 		       previous_resource_version, resource_version
-		FROM resource 
+		FROM resource
 		WHERE namespace = ?
 		ORDER BY name ASC
 	`)
@@ -613,31 +613,31 @@ func verifyResourceTable(t *testing.T, db sqldb.DB, namespace string, resources 
 
 	// We expect 1 record since only 2 resources were deleted (the 3rd remains)
 	require.Len(t, records, 1, "Expected 1 resource record since only 2 resources were deleted")
-	
+
 	// Validate the remaining record (should be the 3rd resource after update)
 	record := records[0]
 	require.Equal(t, "playlist.grafana.app", record.Group)
 	require.Equal(t, "playlists", record.Resource)
 	require.Equal(t, "test-resource-3", record.Name)
-	
+
 	// Should be an update action (2) - resource table stores latest action
 	require.Equal(t, 2, record.Action)
-	
+
 	// Validate value contains expected JSON
 	nameFound := strings.Contains(record.Value, fmt.Sprintf(`"name": "%s"`, "test-resource-3")) ||
-	             strings.Contains(record.Value, fmt.Sprintf(`"name":"%s"`, "test-resource-3"))
+		strings.Contains(record.Value, fmt.Sprintf(`"name":"%s"`, "test-resource-3"))
 	require.True(t, nameFound, "JSON should contain the expected name field")
-	
+
 	kindFound := strings.Contains(record.Value, `"kind": "Playlist"`) ||
-	             strings.Contains(record.Value, `"kind":"Playlist"`)
+		strings.Contains(record.Value, `"kind":"Playlist"`)
 	require.True(t, kindFound, "JSON should contain the expected kind field")
-	
+
 	// Folder should be empty (3rd resource has no folder annotation)
 	require.Equal(t, "", record.Folder, "3rd resource should have no folder")
-	
+
 	// GUID should be non-empty
 	require.NotEmpty(t, record.GUID, "GUID should not be empty")
-	
+
 	// Resource version should be positive
 	require.Greater(t, record.ResourceVersion, int64(0), "Resource version should be positive")
 }
@@ -647,7 +647,7 @@ func verifyResourceVersionTable(t *testing.T, db sqldb.DB, namespace string, res
 	ctx := context.Background()
 	query := buildCrossDatabaseQuery(db.DriverName(), `
 		SELECT "group", resource, resource_version
-		FROM resource_version 
+		FROM resource_version
 		WHERE "group" = ? AND resource = ?
 	`)
 
@@ -667,11 +667,11 @@ func verifyResourceVersionTable(t *testing.T, db sqldb.DB, namespace string, res
 
 	// We expect exactly 1 record for the group+resource combination
 	require.Len(t, records, 1, "Expected 1 resource_version record for playlist.grafana.app/playlists")
-	
+
 	record := records[0]
 	require.Equal(t, "playlist.grafana.app", record.Group)
 	require.Equal(t, "playlists", record.Resource)
-	
+
 	// Find the highest resource version across all resources
 	var maxRV int64
 	for _, rvs := range resourceVersions {
@@ -681,7 +681,7 @@ func verifyResourceVersionTable(t *testing.T, db sqldb.DB, namespace string, res
 			}
 		}
 	}
-	
+
 	// The resource_version table should contain the latest RV for the group+resource
 	// It might be slightly higher due to RV manager operations, so check it's at least our max
 	require.GreaterOrEqual(t, record.ResourceVersion, maxRV, "resource_version should be at least the latest RV we tracked")
