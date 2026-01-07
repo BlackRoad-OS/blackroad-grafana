@@ -471,7 +471,7 @@ describe('Query and expressions reducer', () => {
       // The reduce expression should still exist but its reference should be cleared
       expect(newState.queries).toHaveLength(1);
       expect(newState.queries[0].refId).toBe('B');
-      expect(newState.queries[0].model.expression).toBeNull();
+      expect(newState.queries[0].model.expression).toBeUndefined();
     });
 
     it('should clear expression reference when removing a data query via setDataQueries', () => {
@@ -521,7 +521,7 @@ describe('Query and expressions reducer', () => {
       expect(newState.queries).toHaveLength(2);
       expect(newState.queries.map((q) => q.refId)).toEqual(['A', 'C']);
       const thresholdQuery = newState.queries.find((q) => q.refId === 'C');
-      expect(thresholdQuery?.model.expression).toBeNull();
+      expect(thresholdQuery?.model.expression).toBeUndefined();
     });
   });
 });

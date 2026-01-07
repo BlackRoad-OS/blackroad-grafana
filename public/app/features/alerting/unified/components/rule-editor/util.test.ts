@@ -237,7 +237,7 @@ describe('rule-editor', () => {
       const updatedQueries = queriesWithRemovedReferences(queries, 'A');
 
       expect(updatedQueries[0]).toEqual(dataSource);
-      expect(updatedQueries[1].model.expression).toBeNull();
+      expect(updatedQueries[1].model.expression).toBeUndefined();
     });
 
     it('should clear reference in threshold expression when expression is removed', () => {
@@ -246,7 +246,7 @@ describe('rule-editor', () => {
 
       expect(updatedQueries[0]).toEqual(dataSource);
       expect(updatedQueries[1]).toEqual(reduceExpression);
-      expect(updatedQueries[2].model.expression).toBeNull();
+      expect(updatedQueries[2].model.expression).toBeUndefined();
     });
 
     it('should remove reference from math expression', () => {
@@ -282,7 +282,7 @@ describe('rule-editor', () => {
       const queries: AlertQuery[] = [dataSource, resampleExpression];
       const updatedQueries = queriesWithRemovedReferences(queries, 'A');
 
-      expect(updatedQueries[1].model.expression).toBeNull();
+      expect(updatedQueries[1].model.expression).toBeUndefined();
     });
   });
 

@@ -105,8 +105,8 @@ export function queriesWithRemovedReferences(queries: AlertQuery[], removedRefId
         ...query,
         model: {
           ...query.model,
-          // Set to null so Select component shows no selection
-          expression: isReferencing ? null : query.model.expression,
+          // Set to undefined to clear the dangling reference
+          expression: isReferencing ? undefined : query.model.expression,
         },
       };
     }

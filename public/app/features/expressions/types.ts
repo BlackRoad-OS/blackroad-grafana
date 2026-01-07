@@ -1,4 +1,5 @@
 import { DataQuery, ReducerID, SelectableValue } from '@grafana/data';
+import { ComboboxOption } from '@grafana/ui';
 import { config } from 'app/core/config';
 
 import { EvalFunction } from '../alerting/state/alertDef';
@@ -75,7 +76,7 @@ export const expressionTypes: Array<SelectableValue<ExpressionQueryType>> = [
   return true;
 });
 
-export const reducerTypes: Array<SelectableValue<string>> = [
+export const reducerTypes: Array<ComboboxOption<string>> = [
   { value: ReducerID.min, label: 'Min', description: 'Get the minimum value' },
   { value: ReducerID.max, label: 'Max', description: 'Get the maximum value' },
   { value: ReducerID.mean, label: 'Mean', description: 'Get the average value' },
@@ -91,7 +92,7 @@ export enum ReducerMode {
   DropNonNumbers = 'dropNN',
 }
 
-export const reducerModes: Array<SelectableValue<ReducerMode>> = [
+export const reducerModes: Array<ComboboxOption<ReducerMode>> = [
   {
     value: ReducerMode.Strict,
     label: 'Strict',

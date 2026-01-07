@@ -1,37 +1,39 @@
 import * as React from 'react';
 
-import { CoreApp, SelectableValue } from '@grafana/data';
+import { CoreApp } from '@grafana/data';
 import { Trans, t } from '@grafana/i18n';
-import { Alert, InlineField, InlineFieldRow, Input, Select, TextLink } from '@grafana/ui';
+import { Alert, Combobox, ComboboxOption, InlineField, InlineFieldRow, Input, TextLink } from '@grafana/ui';
 
 import { ExpressionQuery, ExpressionQuerySettings, ReducerMode, reducerModes, reducerTypes } from '../types';
 
 interface Props {
   app?: CoreApp;
   labelWidth?: number | 'auto';
-  refIds: Array<SelectableValue<string>>;
+  refIds: Array<ComboboxOption<string>>;
   query: ExpressionQuery;
   onChange: (query: ExpressionQuery) => void;
 }
 
 export const Reduce = ({ labelWidth = 'auto', onChange, app, refIds, query }: Props) => {
-  const reducer = reducerTypes.find((o) => o.value === query.reducer);
-
-  const onRefIdChange = (value: SelectableValue<string>) => {
-    onChange({ ...query, expression: value.value });
+  const onRefIdChange = (option: ComboboxOption<string> | null) => {
+    onChange({ ...query, expression: option?.value });
   };
 
-  const onSelectReducer = (value: SelectableValue<string>) => {
-    onChange({ ...query, reducer: value.value });
+  const onSelectReducer = (option: ComboboxOption<string> | null) => {
+    onChange({ ...query, reducer: option?.value });
   };
 
   const onSettingsChanged = (settings: ExpressionQuerySettings) => {
     onChange({ ...query, settings: settings });
   };
 
-  const onModeChanged = (value: SelectableValue<ReducerMode>) => {
+  const onModeChanged = (option: ComboboxOption<ReducerMode> | null) => {
+    if (!option || option.value === null || option.value === undefined) {
+      return;
+    }
+
     let newSettings: ExpressionQuerySettings;
-    switch (value.value) {
+    switch (option.value) {
       case ReducerMode.Strict:
         newSettings = { mode: ReducerMode.Strict };
         break;
@@ -49,7 +51,7 @@ export const Reduce = ({ labelWidth = 'auto', onChange, app, refIds, query }: Pr
 
       default:
         newSettings = {
-          mode: value.value,
+          mode: option.value,
         };
     }
     onSettingsChanged(newSettings);
@@ -101,15 +103,17 @@ export const Reduce = ({ labelWidth = 'auto', onChange, app, refIds, query }: Pr
       {strictModeNotification()}
       <InlineFieldRow>
         <InlineField label={t('expressions.reduce.label-input', 'Input')} labelWidth={labelWidth}>
-          <Select onChange={onRefIdChange} options={refIds} value={query.expression} width={'auto'} />
+          <Combobox onChange={onRefIdChange} options={refIds} value={query.expression} width={50} />
         </InlineField>
       </InlineFieldRow>
       <InlineFieldRow>
         <InlineField label={t('expressions.reduce.label-function', 'Function')} labelWidth={labelWidth}>
-          <Select options={reducerTypes} value={reducer} onChange={onSelectReducer} width={20} />
+          <Combobox options={reducerTypes} value={query.reducer} onChange={onSelectReducer} width={50} />
         </InlineField>
+      </InlineFieldRow>
+      <InlineFieldRow>
         <InlineField label={t('expressions.reduce.label-mode', 'Mode')} labelWidth={labelWidth}>
-          <Select onChange={onModeChanged} options={reducerModes} value={mode} width={25} />
+          <Combobox onChange={onModeChanged} options={reducerModes} value={mode} width={50} />
         </InlineField>
         {replaceWithNumber()}
       </InlineFieldRow>
