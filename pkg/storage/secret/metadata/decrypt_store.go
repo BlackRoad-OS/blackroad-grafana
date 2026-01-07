@@ -135,7 +135,7 @@ func (s *decryptStorage) Decrypt(ctx context.Context, namespace xkube.Namespace,
 		return "", fmt.Errorf("failed to authorize decryption with reason %v (%w)", reason, contracts.ErrDecryptNotAuthorized)
 	}
 
-	keeperConfig, err := s.keeperMetadataStorage.GetKeeperConfig(ctx, namespace.String(), sv.Spec.Keeper, contracts.ReadOpts{})
+	keeperConfig, err := s.keeperMetadataStorage.GetKeeperConfig(ctx, namespace.String(), sv.Status.Keeper, contracts.ReadOpts{})
 	if err != nil {
 		return "", fmt.Errorf("failed to read keeper config metadata storage: %v (%w)", err, contracts.ErrDecryptFailed)
 	}
@@ -143,6 +143,14 @@ func (s *decryptStorage) Decrypt(ctx context.Context, namespace xkube.Namespace,
 	keeper, err := s.keeperService.KeeperForConfig(keeperConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to get keeper for config: %v (%w)", err, contracts.ErrDecryptFailed)
+	}
+
+	if sv.Spec.Ref != nil {
+		exposedValue, err := keeper.RetrieveReference(ctx, keeperConfig, *sv.Spec.Ref)
+		if err != nil {
+			return "", fmt.Errorf("failed to expose secret using reference: %v (%w)", err, contracts.ErrDecryptFailed)
+		}
+		return exposedValue, nil
 	}
 
 	exposedValue, err := keeper.Expose(ctx, keeperConfig, namespace, name, sv.Status.Version)
