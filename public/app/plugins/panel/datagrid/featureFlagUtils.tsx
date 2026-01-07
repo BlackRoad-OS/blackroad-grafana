@@ -1,5 +1,6 @@
-import { config } from '@grafana/runtime';
+import { OpenFeature } from '@openfeature/web-sdk';
 
+const datagridEditingFlag = 'enableDatagridEditing';
 export const isDatagridEnabled = () => {
-  return config.featureToggles.enableDatagridEditing;
+  return OpenFeature.getClient().getBooleanValue(datagridEditingFlag, false);
 };
