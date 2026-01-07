@@ -1,9 +1,9 @@
 package setting
 
 import (
-	"errors"
 	"testing"
 
+	"github.com/open-feature/go-sdk/openfeature/memprovider"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ini.v1"
 )
@@ -12,17 +12,16 @@ func TestFeatureToggles(t *testing.T) {
 	testCases := []struct {
 		name            string
 		conf            map[string]string
-		err             error
-		expectedToggles map[string]FeatureToggle
+		expectedToggles map[string]memprovider.InMemoryFlag
 	}{
 		{
 			name: "can parse feature toggles passed in the `enable` array",
 			conf: map[string]string{
 				"enable": "feature1,feature2",
 			},
-			expectedToggles: map[string]FeatureToggle{
-				"feature1": {Name: "feature1", Type: Boolean, Value: true},
-				"feature2": {Name: "feature2", Type: Boolean, Value: true},
+			expectedToggles: map[string]memprovider.InMemoryFlag{
+				"feature1": {Key: "feature1", Variants: map[string]any{"": true}},
+				"feature2": {Key: "feature2", Variants: map[string]any{"": true}},
 			},
 		},
 		{
@@ -31,10 +30,10 @@ func TestFeatureToggles(t *testing.T) {
 				"enable":   "feature1,feature2",
 				"feature3": "true",
 			},
-			expectedToggles: map[string]FeatureToggle{
-				"feature1": {Name: "feature1", Type: Boolean, Value: true},
-				"feature2": {Name: "feature2", Type: Boolean, Value: true},
-				"feature3": {Name: "feature3", Type: Boolean, Value: true},
+			expectedToggles: map[string]memprovider.InMemoryFlag{
+				"feature1": {Key: "feature1", Variants: map[string]any{"": true}},
+				"feature2": {Key: "feature2", Variants: map[string]any{"": true}},
+				"feature3": {Key: "feature3", Variants: map[string]any{"": true}},
 			},
 		},
 		{
@@ -43,19 +42,10 @@ func TestFeatureToggles(t *testing.T) {
 				"enable":   "feature1,feature2",
 				"feature2": "false",
 			},
-			expectedToggles: map[string]FeatureToggle{
-				"feature1": {Name: "feature1", Type: Boolean, Value: true},
-				"feature2": {Name: "feature2", Type: Boolean, Value: false},
+			expectedToggles: map[string]memprovider.InMemoryFlag{
+				"feature1": {Key: "feature1", Variants: map[string]any{"": true}},
+				"feature2": {Key: "feature2", Variants: map[string]any{"": false}},
 			},
-		},
-		{
-			name: "conflict in type declaration is be detected",
-			conf: map[string]string{
-				"enable":   "feature1,feature2",
-				"feature2": "invalid",
-			},
-			expectedToggles: map[string]FeatureToggle{},
-			err:             errors.New("type mismatch during flag declaration 'feature2': boolean, string"),
 		},
 		{
 			name: "type of the feature flag is handled correctly",
@@ -64,13 +54,13 @@ func TestFeatureToggles(t *testing.T) {
 				"feature3": `{"foo":"bar"}`, "feature4": "bar",
 				"feature5": "t", "feature6": "T",
 			},
-			expectedToggles: map[string]FeatureToggle{
-				"feature1": {Name: "feature1", Type: Integer, Value: 1},
-				"feature2": {Name: "feature2", Type: Float, Value: 1.0},
-				"feature3": {Name: "feature3", Type: Structure, Value: map[string]any{"foo": "bar"}},
-				"feature4": {Name: "feature4", Type: String, Value: "bar"},
-				"feature5": {Name: "feature5", Type: Boolean, Value: true},
-				"feature6": {Name: "feature6", Type: Boolean, Value: true},
+			expectedToggles: map[string]memprovider.InMemoryFlag{
+				"feature1": {Key: "feature1", Variants: map[string]any{"": 1}},
+				"feature2": {Key: "feature2", Variants: map[string]any{"": 1.0}},
+				"feature3": {Key: "feature3", Variants: map[string]any{"": map[string]any{"foo": "bar"}}},
+				"feature4": {Key: "feature4", Variants: map[string]any{"": "bar"}},
+				"feature5": {Key: "feature5", Variants: map[string]any{"": true}},
+				"feature6": {Key: "feature6", Variants: map[string]any{"": true}},
 			},
 		},
 	}
@@ -85,15 +75,11 @@ func TestFeatureToggles(t *testing.T) {
 		}
 
 		featureToggles, err := ReadFeatureTogglesFromInitFile(toggles)
-		if tc.err != nil {
-			require.EqualError(t, err, tc.err.Error())
-		}
+		require.NoError(t, err)
 
-		if err == nil {
-			for k, v := range featureToggles {
-				toggle := tc.expectedToggles[k]
-				require.Equal(t, toggle, v, tc.name)
-			}
+		for k, v := range featureToggles {
+			toggle := tc.expectedToggles[k]
+			require.Equal(t, toggle, v, tc.name)
 		}
 	}
 }

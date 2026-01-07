@@ -2,29 +2,14 @@ package setting
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"gopkg.in/ini.v1"
 
+	"github.com/open-feature/go-sdk/openfeature/memprovider"
+
 	"github.com/grafana/grafana/pkg/util"
 )
-
-type FeatureFlagType string
-
-const (
-	Structure FeatureFlagType = "structure"
-	Integer   FeatureFlagType = "integer"
-	Float     FeatureFlagType = "float"
-	Boolean   FeatureFlagType = "boolean"
-	String    FeatureFlagType = "string"
-)
-
-type FeatureToggle struct {
-	Type  FeatureFlagType `json:"type"`
-	Name  string          `json:"name"`
-	Value any             `json:"value"`
-}
 
 // Deprecated: should use `featuremgmt.FeatureToggles`
 func (cfg *Cfg) readFeatureToggles(iniFile *ini.File) error {
@@ -41,22 +26,19 @@ func (cfg *Cfg) readFeatureToggles(iniFile *ini.File) error {
 			return false
 		}
 
-		return toggle.Type == Boolean && toggle.Value == true
+		val, ok := toggle.Variants[toggle.DefaultVariant].(bool)
+		return ok && val
 	}
 	return nil
 }
 
-func ReadFeatureTogglesFromInitFile(featureTogglesSection *ini.Section) (map[string]FeatureToggle, error) {
-	featureToggles := make(map[string]FeatureToggle, 10)
+func ReadFeatureTogglesFromInitFile(featureTogglesSection *ini.Section) (map[string]memprovider.InMemoryFlag, error) {
+	featureToggles := make(map[string]memprovider.InMemoryFlag, 10)
 
 	// parse the comma separated list in `enable`.
 	featuresTogglesStr := valueAsString(featureTogglesSection, "enable", "")
 	for _, feature := range util.SplitString(featuresTogglesStr) {
-		featureToggles[feature] = FeatureToggle{
-			Type:  Boolean,
-			Name:  feature,
-			Value: true,
-		}
+		featureToggles[feature] = memprovider.InMemoryFlag{Key: feature, Variants: map[string]any{"": true}}
 	}
 
 	// read all other settings under [feature_toggles]. If a toggle is
@@ -71,31 +53,28 @@ func ReadFeatureTogglesFromInitFile(featureTogglesSection *ini.Section) (map[str
 			return featureToggles, err
 		}
 
-		flag, exists := featureToggles[v.Name()]
-		if exists && flag.Type != b.Type {
-			return nil, fmt.Errorf("type mismatch during flag declaration '%s': %s, %s", v.Name(), flag.Type, b.Type)
-		}
-
 		featureToggles[v.Name()] = b
 	}
 	return featureToggles, nil
 }
 
-func ParseFlag(name, value string) (FeatureToggle, error) {
-	var structure map[string]any
-
+func ParseFlag(name, value string) (memprovider.InMemoryFlag, error) {
 	if integer, err := strconv.Atoi(value); err == nil {
-		return FeatureToggle{Type: Integer, Name: name, Value: integer}, nil
-	}
-	if float, err := strconv.ParseFloat(value, 64); err == nil {
-		return FeatureToggle{Type: Float, Name: name, Value: float}, nil
-	}
-	if err := json.Unmarshal([]byte(value), &structure); err == nil {
-		return FeatureToggle{Type: Structure, Name: name, Value: structure}, nil
-	}
-	if boolean, err := strconv.ParseBool(value); err == nil {
-		return FeatureToggle{Type: Boolean, Name: name, Value: boolean}, nil
+		return memprovider.InMemoryFlag{Key: name, Variants: map[string]any{"": integer}}, nil
 	}
 
-	return FeatureToggle{Type: String, Name: name, Value: value}, nil
+	if float, err := strconv.ParseFloat(value, 64); err == nil {
+		return memprovider.InMemoryFlag{Key: name, Variants: map[string]any{"": float}}, nil
+	}
+
+	var structure map[string]any
+	if err := json.Unmarshal([]byte(value), &structure); err == nil {
+		return memprovider.InMemoryFlag{Key: name, Variants: map[string]any{"": structure}}, nil
+	}
+
+	if boolean, err := strconv.ParseBool(value); err == nil {
+		return memprovider.InMemoryFlag{Key: name, Variants: map[string]any{"": boolean}}, nil
+	}
+
+	return memprovider.InMemoryFlag{Key: name, Variants: map[string]any{"": value}}, nil
 }
